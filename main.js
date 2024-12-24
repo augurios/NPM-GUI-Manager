@@ -1,5 +1,8 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const { exec } = require('child_process');
+const { Client } = require('ssh2');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -25,4 +28,56 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+ipcMain.handle('get-file-list', async (event, dirPath) => {
+  return new Promise((resolve, reject) => {
+    fs.readdir(dirPath, (err, files) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(files);
+      }
+    });
+  });
+});
+
+ipcMain.handle('run-npm-command', async (event, command) => {
+  return new Promise((resolve, reject) => {
+    exec(`npm ${command}`, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+});
+
+ipcMain.handle('push-to-remote', async (event, config) => {
+  const { host, port, username, password, localPath, remotePath } = config;
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    conn.on('ready', () => {
+      conn.sftp((err, sftp) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        sftp.fastPut(localPath, remotePath, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve('File uploaded successfully');
+          }
+          conn.end();
+        });
+      });
+    }).connect({
+      host,
+      port,
+      username,
+      password
+    });
+  });
 });
