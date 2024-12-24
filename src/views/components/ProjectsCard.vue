@@ -33,61 +33,28 @@
       </div>
     </div>
   </div>
+  <div v-if="showModal" class="modal">
+    <div class="modal-content">
+      <span class="close" @click="closeModal">&times;</span>
+      <h2>Enter Project Name</h2>
+      <input v-model="projectName" type="text" placeholder="Project Name">
+      <button @click="saveProjectName">Save</button>
+    </div>
+  </div>
 </template>
 
 <script>
 import { mapState, mapMutations } from "vuex";
-const { dialog } = require('electron');
 import setTooltip from "@/assets/js/tooltip.js";
-// import SoftAvatar from "@/components/SoftAvatar.vue";
-// import SoftProgress from "@/components/SoftProgress.vue";
-import img1 from "../../assets/img/small-logos/logo-xd.svg";
-import img2 from "../../assets/img/team-1.jpg";
-import img3 from "@/assets/img/team-2.jpg";
-import img4 from "../../assets/img/team-3.jpg";
-import img5 from "../../assets/img/team-4.jpg";
-import img6 from "../../assets/img/small-logos/logo-atlassian.svg";
-import img7 from "../../assets/img/team-2.jpg";
-import img8 from "../../assets/img/team-4.jpg";
-import img9 from "../../assets/img/small-logos/logo-slack.svg";
-import img10 from "../../assets/img/team-3.jpg";
-import img11 from "../../assets/img/team-1.jpg";
-import img12 from "../../assets/img/small-logos/logo-spotify.svg";
-import img13 from "../../assets/img/team-4.jpg";
-import img14 from "../../assets/img/team-3.jpg";
-import img15 from "../../assets/img/team-4.jpg";
-import img16 from "../../assets/img/team-1.jpg";
-import img17 from "../../assets/img/small-logos/logo-jira.svg";
-import img18 from "../../assets/img/team-4.jpg";
-import img19 from "../../assets/img/small-logos/logo-invision.svg";
-import img20 from "../../assets/img/team-1.jpg";
-import img21 from "../../assets/img/team-4.jpg";
+const { ipcRenderer } = window.electron;
 
 export default {
   name: "projects-card",
   data() {
     return {
-      img1,
-      img2,
-      img3,
-      img4,
-      img5,
-      img6,
-      img7,
-      img8,
-      img9,
-      img10,
-      img11,
-      img12,
-      img13,
-      img14,
-      img15,
-      img16,
-      img17,
-      img18,
-      img19,
-      img20,
-      img21,
+      initial: null,
+      projectName: '', // Add a new data property for project name
+      showModal: false // Add a new data property to control modal visibility
     };
   },
   computed: {
@@ -97,24 +64,43 @@ export default {
     ...mapMutations(["addProjectToStore"]),
     async addProject() {
       const path = await this.browseFolder();
-      const name = prompt("Enter project name:");
+      this.showModal = true; // Show the modal to enter project name
+      // Wait for the user to enter the project name
+      const name = await new Promise((resolve) => {
+        const interval = setInterval(() => {
+          if (!this.showModal) {
+            clearInterval(interval);
+            resolve(this.projectName);
+          }
+        }, 100);
+      });
       console.log(name, path);
       if (name && path) {
-        
         this.addProjectToStore({ name, path });
-        
       }
     },
-    async browseFolders() {
-      const result = await dialog.showOpenDialog({
-        properties: ['openDirectory']
+    browseFolder() {
+      return new Promise((resolve) => {
+        ipcRenderer.invoke('show-open-dialog', {
+          properties: ['openDirectory']
+        }).then(result => {
+          if (!result.canceled && result.filePaths.length > 0) {
+            resolve(result.filePaths[0]);
+          } else {
+            resolve(undefined);
+          }
+        }).catch(err => {
+          console.error(err);
+          resolve(undefined);
+        });
       });
-      if (!result.canceled && result.filePaths.length > 0) {
-        const folderPath = result.filePaths[0];
-        console.log('Selected folder path:', folderPath);
-        return folderPath;
-      }
     },
+    closeModal() {
+      this.showModal = false;
+    },
+    saveProjectName() {
+      this.showModal = false;
+    }
   },
   components: {
     // SoftAvatar,
@@ -125,3 +111,41 @@ export default {
   },
 };
 </script>
+
+<style>
+/* Add some basic styles for the modal */
+.modal {
+  display: block;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0);
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+</style>

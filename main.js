@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -9,7 +9,9 @@ function createWindow() {
     width: 1280,
     height: 920,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false, // Ensure nodeIntegration is disabled
+      contextIsolation: true // Enable contextIsolation
     }
   });
 
@@ -28,6 +30,14 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+ipcMain.handle('show-open-dialog', async (event, options) => {
+  return dialog.showOpenDialog(options);
+});
+
+ipcMain.handle('show-message-box', async (event, options) => {
+  return dialog.showMessageBox(options);
 });
 
 ipcMain.handle('get-file-list', async (event, dirPath) => {
