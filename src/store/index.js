@@ -20,6 +20,7 @@ export default createStore({
       "position-sticky blur shadow-blur left-auto top-1 z-index-sticky px-0 mx-4",
     absolute: "position-absolute px-4 mx-0 w-100 z-index-2",
     bootstrap,
+    projects: [],
   },
   mutations: {
     toggleConfigurator(state) {
@@ -57,6 +58,9 @@ export default createStore({
     },
     toggleHideConfig(state) {
       state.hideConfigButton = !state.hideConfigButton;
+    },
+    addProjectToStore(state, project) {
+      state.projects.push(project);
     },
   },
   actions: {
