@@ -116,18 +116,31 @@ export default {
         for (const file of files) {
           const filePath = path.join(dir, file);
           const stat = await ipcRenderer.invoke('custom-stat', filePath);
-          if (stat.isFile && stat.isFile() && faviconFiles.includes(file)) {
+          if (!stat.isDirectory && faviconFiles.includes(file)) {
             return filePath;
-          } else if (stat.isDirectory && stat.isDirectory()) {
-            const result = await searchFavicon(filePath);
-            if (result) return result;
           }
         }
         return null;
       };
 
+      // Search in the main folder
       faviconPath = await searchFavicon(folderPath);
-      return faviconPath;
+      if (faviconPath) return faviconPath;
+
+      // Search in immediate subfolders
+      const subfolders = await ipcRenderer.invoke('custom-readdir', folderPath);
+      
+      for (const subfolder of subfolders) {
+        const subfolderPath = path.join(folderPath, subfolder);
+        const stat = await ipcRenderer.invoke('custom-stat', subfolderPath);
+        console.log('stat', stat);
+        if (stat.isDirectory) {
+          const result = await searchFavicon(subfolderPath);
+          if (result) return result;
+        }
+      }
+
+      return null;
     },
     closeModal() {
       this.showModal = false;

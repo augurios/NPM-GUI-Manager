@@ -97,5 +97,8 @@ ipcMain.handle('custom-readdir', async (event, dir) => {
 });
 
 ipcMain.handle('custom-stat', async (event, filePath) => {
-  return fs.promises.stat(filePath);
+  const stats = await fs.promises.stat(filePath);
+  return {
+    isDirectory: stats.isDirectory(),
+  };
 });
