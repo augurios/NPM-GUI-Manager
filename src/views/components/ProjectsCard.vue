@@ -25,7 +25,18 @@
           </thead>
           <tbody>
             <tr v-for="project in projects" :key="project.name">
-              <td>{{ project.name }}</td>
+              <td>
+                <div class="d-flex px-2 py-1">
+                  <div>
+                    <div class="avatar avatar-sm me-3">
+                      <img src="/vue-soft-ui-dashboard/img/logo-xd.c0c96993.svg" alt="xd" class="null null null">
+                    </div>
+                  </div>
+                  <div class="d-flex flex-column justify-content-center">
+                      <h6 class="mb-0 text-sm">{{ project.name }}</h6>
+                  </div>
+                </div>
+              </td>
               <td>{{ project.path }}</td>
             </tr>
           </tbody>
@@ -53,8 +64,8 @@ export default {
   data() {
     return {
       initial: null,
-      projectName: '', // Add a new data property for project name
-      showModal: false // Add a new data property to control modal visibility
+      projectName: '',
+      showModal: false 
     };
   },
   computed: {
@@ -64,8 +75,7 @@ export default {
     ...mapMutations(["addProjectToStore"]),
     async addProject() {
       const path = await this.browseFolder();
-      this.showModal = true; // Show the modal to enter project name
-      // Wait for the user to enter the project name
+      this.showModal = true; 
       const name = await new Promise((resolve) => {
         const interval = setInterval(() => {
           if (!this.showModal) {
@@ -113,7 +123,6 @@ export default {
 </script>
 
 <style>
-/* Add some basic styles for the modal */
 .modal-prompt {
   display: block;
   position: fixed;
