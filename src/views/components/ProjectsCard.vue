@@ -29,7 +29,7 @@
                 <div class="d-flex px-2 py-1">
                   <div>
                     <div class="avatar avatar-sm me-3">
-                      <img src="/vue-soft-ui-dashboard/img/logo-xd.c0c96993.svg" alt="xd" class="null null null">
+                      <img :src="project.favicon || '/img/logo-xd.c0c96993.svg'" alt="favicon" class="null null null">
                     </div>
                   </div>
                   <div class="d-flex flex-column justify-content-center">
@@ -58,6 +58,7 @@
 import { mapState, mapMutations } from "vuex";
 import setTooltip from "@/assets/js/tooltip.js";
 const { ipcRenderer } = window.electron;
+const path = require('path');
 
 export default {
   name: "projects-card",
@@ -74,7 +75,7 @@ export default {
   methods: {
     ...mapMutations(["addProjectToStore"]),
     async addProject() {
-      const path = await this.browseFolder();
+      const folderPath = await this.browseFolder();
       this.showModal = true; 
       const name = await new Promise((resolve) => {
         const interval = setInterval(() => {
@@ -84,9 +85,10 @@ export default {
           }
         }, 100);
       });
-      console.log(name, path);
-      if (name && path) {
-        this.addProjectToStore({ name, path });
+      const favicon = await this.findFavicon(folderPath);
+      console.log(name, folderPath, favicon);
+      if (name && folderPath) {
+        this.addProjectToStore({ name, path: folderPath, favicon });
       }
     },
     browseFolder() {
@@ -104,6 +106,28 @@ export default {
           resolve(undefined);
         });
       });
+    },
+    async findFavicon(folderPath) {
+      const faviconFiles = ['favicon.ico', 'favicon.png'];
+      let faviconPath = null;
+
+      const searchFavicon = async (dir) => {
+        const files = await ipcRenderer.invoke('custom-readdir', dir);
+        for (const file of files) {
+          const filePath = path.join(dir, file);
+          const stat = await ipcRenderer.invoke('custom-stat', filePath);
+          if (stat.isFile && stat.isFile() && faviconFiles.includes(file)) {
+            return filePath;
+          } else if (stat.isDirectory && stat.isDirectory()) {
+            const result = await searchFavicon(filePath);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
+
+      faviconPath = await searchFavicon(folderPath);
+      return faviconPath;
     },
     closeModal() {
       this.showModal = false;

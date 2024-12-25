@@ -91,3 +91,11 @@ ipcMain.handle('push-to-remote', async (event, config) => {
     });
   });
 });
+
+ipcMain.handle('custom-readdir', async (event, dir) => {
+  return fs.promises.readdir(dir);
+});
+
+ipcMain.handle('custom-stat', async (event, filePath) => {
+  return fs.promises.stat(filePath);
+});
