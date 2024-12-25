@@ -33,7 +33,7 @@
       </div>
     </div>
   </div>
-  <div v-if="showModal" class="modal">
+  <div v-if="showModal" class="modal-prompt">
     <div class="modal-content">
       <span class="close" @click="closeModal">&times;</span>
       <h2>Enter Project Name</h2>
@@ -114,7 +114,7 @@ export default {
 
 <style>
 /* Add some basic styles for the modal */
-.modal {
+.modal-prompt {
   display: block;
   position: fixed;
   z-index: 1;

@@ -1,5 +1,6 @@
 import { createStore } from "vuex";
 import bootstrap from "bootstrap/dist/js/bootstrap.min.js";
+import createPersistedState from "vuex-persistedstate";
 
 export default createStore({
   state: {
@@ -72,4 +73,5 @@ export default createStore({
     },
   },
   getters: {},
+  plugins: [createPersistedState()],
 });
