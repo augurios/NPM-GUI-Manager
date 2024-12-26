@@ -102,3 +102,8 @@ ipcMain.handle('custom-stat', async (event, filePath) => {
     isDirectory: stats.isDirectory(),
   };
 });
+
+ipcMain.handle('read-file', async (event, filePath) => {
+  const data = await fs.promises.readFile(filePath, { encoding: 'base64' });
+  return `data:image/${path.extname(filePath).slice(1)};base64,${data}`;
+});

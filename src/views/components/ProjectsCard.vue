@@ -20,7 +20,7 @@
           <thead>
             <tr>
               <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project Name</th>
-              <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Path</th>
+              <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Path</th>
             </tr>
           </thead>
           <tbody>
@@ -37,7 +37,9 @@
                   </div>
                 </div>
               </td>
-              <td>{{ project.path }}</td>
+              <td class="align-middle text-center text-sm">
+                <span class="text-xs font-weight-bold">{{ project.path }}</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -125,7 +127,7 @@ export default {
 
       // Search in the main folder
       faviconPath = await searchFavicon(folderPath);
-      if (faviconPath) return faviconPath;
+      if (faviconPath) return await ipcRenderer.invoke('read-file', faviconPath);
 
       // Search in immediate subfolders
       const subfolders = await ipcRenderer.invoke('custom-readdir', folderPath);
@@ -136,7 +138,7 @@ export default {
         console.log('stat', stat);
         if (stat.isDirectory) {
           const result = await searchFavicon(subfolderPath);
-          if (result) return result;
+          if (result) return await ipcRenderer.invoke('read-file', result);
         }
       }
 
