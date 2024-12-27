@@ -187,6 +187,7 @@ export default {
     },
     closeModal() {
       this.showModal = false;
+      this.projectName = '';
     },
     saveProjectName() {
       this.showModal = false;
@@ -219,8 +220,8 @@ export default {
       });
       project.showOptions = !project.showOptions;
     },
-    updatePrName(value) {
-      this.projectName = value.target.value;
+    updatePrName(event) {
+      this.projectName = event.target.value;
     }
   },
   mounted() {
