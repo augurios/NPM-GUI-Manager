@@ -63,10 +63,10 @@
           Enter Project Name
         </template>
         <template v-slot:body>
-          <input v-model="projectName" type="text" placeholder="Project Name">
+          <soft-input @input="updatePrName" type="text" placeholder="Project Name" aria-label="Project Name" :isRequired="true" />
         </template>
         <template v-slot:footer>
-          <button @click="saveProjectName">Save</button>
+          <soft-button color="dark" full-width variant="gradient" @click="saveProjectName">Save</soft-button>
         </template>
       </ModalPrompt>
     </div>
@@ -79,8 +79,8 @@
           <p>Are you sure you want to delete the project "{{ projectToDelete.name }}"?</p>
         </template>
         <template v-slot:footer>
-          <button @click="deleteProject">Delete</button>
-          <button @click="closeDeleteModal">Cancel</button>
+          <soft-button color="dark" variant="gradient" @click="deleteProject">Delete</soft-button>
+          <soft-button color="secondary" variant="gradient" @click="closeDeleteModal">Cancel</soft-button>
         </template>
       </ModalPrompt>
     </div>
@@ -91,6 +91,8 @@
 import { mapState, mapMutations } from "vuex";
 import setTooltip from "@/assets/js/tooltip.js";
 import ModalPrompt from "@/components/ModalPrompt.vue";
+import SoftInput from "@/components/SoftInput.vue";
+import SoftButton from "@/components/SoftButton.vue";
 const { ipcRenderer } = window.electron;
 const path = require('path');
 
@@ -98,6 +100,8 @@ export default {
   name: "projects-card",
   components: {
     ModalPrompt,
+    SoftInput,
+    SoftButton,
   },
   data() {
     return {
@@ -214,6 +218,9 @@ export default {
         }
       });
       project.showOptions = !project.showOptions;
+    },
+    updatePrName(value) {
+      this.projectName = value.target.value;
     }
   },
   mounted() {
