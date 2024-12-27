@@ -63,6 +63,9 @@ export default createStore({
     addProjectToStore(state, project) {
       state.projects.push(project);
     },
+    removeProjectFromStore(state, project) {
+      state.projects = state.projects.filter(p => p.name !== project.name);
+    },
   },
   actions: {
     toggleSidebarColor({ commit }, payload) {

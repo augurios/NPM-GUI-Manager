@@ -4,10 +4,10 @@
       <div class="row">
         <div class="col-lg-6 col-7">
           <h6>Projects</h6>
-          <p class="text-sm mb-0">
+          <!-- <p class="text-sm mb-0">
             <i class="fa fa-check text-info" aria-hidden="true"></i>
             <span class="font-weight-bold ms-1">{{ projects.length }} done</span> this month
-          </p>
+          </p> -->
         </div>
         <div class="col-lg-6 col-5 my-auto text-end">
           <button @click="addProject" class="btn btn-primary">Add Project</button>
@@ -21,6 +21,7 @@
             <tr>
               <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project Name</th>
               <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Path</th>
+              <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">...</th>
             </tr>
           </thead>
           <tbody>
@@ -38,20 +39,50 @@
                 </div>
               </td>
               <td class="align-middle text-center text-sm">
-                <span class="text-xs font-weight-bold">{{ project.path }}</span>
+                <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
+              </td>
+              <td class="align-middle">
+                <div class="dropdown">
+                  <button class="btn btn-link text-secondary mb-0" @click="toggleOptionsMenu(project)" data-bs-toggle="dropdown">
+                    <i class="fa fa-ellipsis-v text-xs" aria-hidden="true"></i>
+                  </button>
+                  <ul class="dropdown-menu" :class="{ show: project.showOptions }">
+                    <li><a class="dropdown-item" @click="confirmDelete(project)">Delete</a></li>
+                    <li><a class="dropdown-item" @click="runNpmInstall(project.path)">Run npm install</a></li>
+                  </ul>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
-  <div v-if="showModal" class="modal-prompt">
-    <div class="modal-content">
-      <span class="close" @click="closeModal">&times;</span>
-      <h2>Enter Project Name</h2>
-      <input v-model="projectName" type="text" placeholder="Project Name">
-      <button @click="saveProjectName">Save</button>
+    <div v-if="showModal">
+      <ModalPrompt @close="closeModal">
+        <template v-slot:title>
+          Enter Project Name
+        </template>
+        <template v-slot:body>
+          <input v-model="projectName" type="text" placeholder="Project Name">
+        </template>
+        <template v-slot:footer>
+          <button @click="saveProjectName">Save</button>
+        </template>
+      </ModalPrompt>
+    </div>
+    <div v-if="showDeleteModal">
+      <ModalPrompt @close="closeDeleteModal">
+        <template v-slot:title>
+          Confirm Deletion
+        </template>
+        <template v-slot:body>
+          <p>Are you sure you want to delete the project "{{ projectToDelete.name }}"?</p>
+        </template>
+        <template v-slot:footer>
+          <button @click="deleteProject">Delete</button>
+          <button @click="closeDeleteModal">Cancel</button>
+        </template>
+      </ModalPrompt>
     </div>
   </div>
 </template>
@@ -59,23 +90,29 @@
 <script>
 import { mapState, mapMutations } from "vuex";
 import setTooltip from "@/assets/js/tooltip.js";
+import ModalPrompt from "@/components/ModalPrompt.vue";
 const { ipcRenderer } = window.electron;
 const path = require('path');
 
 export default {
   name: "projects-card",
+  components: {
+    ModalPrompt,
+  },
   data() {
     return {
       initial: null,
       projectName: '',
-      showModal: false 
+      showModal: false,
+      showDeleteModal: false,
+      projectToDelete: null
     };
   },
   computed: {
     ...mapState(["projects"]),
   },
   methods: {
-    ...mapMutations(["addProjectToStore"]),
+    ...mapMutations(["addProjectToStore", "removeProjectFromStore"]),
     async addProject() {
       const folderPath = await this.browseFolder();
       this.showModal = true; 
@@ -149,11 +186,35 @@ export default {
     },
     saveProjectName() {
       this.showModal = false;
+    },
+    confirmDelete(project) {
+      this.projectToDelete = project;
+      this.showDeleteModal = true;
+    },
+    closeDeleteModal() {
+      this.showDeleteModal = false;
+      this.projectToDelete = null;
+    },
+    deleteProject() {
+      this.removeProjectFromStore(this.projectToDelete);
+      this.closeDeleteModal();
+    },
+    async runNpmInstall(projectPath) {
+      try {
+        const result = await ipcRenderer.invoke('run-npm-command', `--prefix ${projectPath} install`);
+        console.log(result);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    toggleOptionsMenu(project) {
+      this.projects.forEach(p => {
+        if (p !== project) {
+          p.showOptions = false;
+        }
+      });
+      project.showOptions = !project.showOptions;
     }
-  },
-  components: {
-    // SoftAvatar,
-    // SoftProgress,
   },
   mounted() {
     setTooltip();
@@ -162,38 +223,17 @@ export default {
 </script>
 
 <style>
-.modal-prompt {
-  display: block;
-  position: fixed;
-  z-index: 1;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgb(0,0,0);
-  background-color: rgba(0,0,0,0.4);
+
+
+.pj-path {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
 }
 
-.modal-content {
-  background-color: #fefefe;
-  margin: 15% auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%;
-}
-
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
-  cursor: pointer;
+.table-responsive {
+  overflow-x: initial !important;
 }
 </style>
