@@ -3,10 +3,12 @@
     
     
     <div class="row my-4">
-      <div class="col-lg-8 col-md-6 mb-md-0 mb-4">
+      <div class="col-lg-11 col-md-6 mb-md-0 mb-4">
         <projects-card />
       </div>
-      <div class="col-lg-4 col-md-6">
+    </div>
+    <div class="row my-4">
+      <div class="col-lg-11 col-md-6">
         <timeline-list
           class="h-100"
           title="Orders overview"
