@@ -42,7 +42,11 @@
                 <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
               </td>
               <td class="align-middle">
-                <div class="dropdown">
+                <button class="btn btn-success ms-2" @click="runNpmBuild(project)" :disabled="project.isBuilding">
+                  <i v-if="!project.isBuilding" class="fa fa-hammer make-inline" aria-hidden="true"></i>
+                  <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
+                </button>
+                <div class="dropdown make-inline">
                   <button class="btn btn-link text-secondary mb-0" @click="toggleOptionsMenu(project)" data-bs-toggle="dropdown">
                     <i class="fa fa-ellipsis-v text-xs" aria-hidden="true"></i>
                   </button>
@@ -51,6 +55,7 @@
                     <li><a class="dropdown-item" @click="runNpmInstall(project.path)">Run npm install</a></li>
                   </ul>
                 </div>
+                
               </td>
             </tr>
           </tbody>
@@ -212,6 +217,20 @@ export default {
         console.error(error);
       }
     },
+    async runNpmBuild(project) {
+      project.isBuilding = true;
+      try {
+        const result = await ipcRenderer.invoke('run-npm-command', `--prefix ${project.path} run build`);
+        console.log(result);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.$nextTick(() => {
+          project.isBuilding = false;
+        });
+      }
+      
+    },
     toggleOptionsMenu(project) {
       this.projects.forEach(p => {
         if (p !== project) {
@@ -243,5 +262,8 @@ export default {
 
 .table-responsive {
   overflow-x: initial !important;
+}
+.make-inline {
+  display: inline !important;
 }
 </style>
