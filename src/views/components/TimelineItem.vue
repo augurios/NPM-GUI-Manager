@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-3 timeline-block" :class="darkMode">
+  <div class="mb-3 timeline-block" :class="darkMode" @click="handleClick">
     <span class="timeline-step" :class="darkMode ? 'bg-dark' : ''">
       <i class="ni text-gradient" :class="`ni-${icon} text-${color}`"></i>
     </span>
@@ -59,6 +59,24 @@ export default {
       type: Boolean,
       default: false,
     },
+    response: {
+      type: String,
+      default: "",
+    },
   },
+  methods: {
+    handleClick() {
+      this.$emit('item-clicked', this.response);
+    }
+  }
 };
 </script>
+
+<style scoped>
+.timeline-block {
+  cursor: pointer;
+}
+.timeline-block:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+</style>
