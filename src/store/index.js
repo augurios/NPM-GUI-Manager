@@ -22,6 +22,7 @@ export default createStore({
     absolute: "position-absolute px-4 mx-0 w-100 z-index-2",
     bootstrap,
     projects: [],
+    logs: [], // Add logs array to state
   },
   mutations: {
     toggleConfigurator(state) {
@@ -65,6 +66,9 @@ export default createStore({
     },
     removeProjectFromStore(state, project) {
       state.projects = state.projects.filter(p => p.name !== project.name);
+    },
+    addLog(state, log) {
+      state.logs.push(log);
     },
   },
   actions: {

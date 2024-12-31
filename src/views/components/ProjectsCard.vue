@@ -121,7 +121,7 @@ export default {
     ...mapState(["projects"]),
   },
   methods: {
-    ...mapMutations(["addProjectToStore", "removeProjectFromStore"]),
+    ...mapMutations(["addProjectToStore", "removeProjectFromStore", "addLog"]),
     async addProject() {
       const folderPath = await this.browseFolder();
       this.showModal = true; 
@@ -210,26 +210,33 @@ export default {
       this.closeDeleteModal();
     },
     async runNpmInstall(projectPath) {
+      const command = `--prefix ${projectPath} install`;
+      const timestamp = new Date().toISOString();
       try {
-        const result = await ipcRenderer.invoke('run-npm-command', `--prefix ${projectPath} install`);
+        const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
+        this.addLog({ timestamp, command, result: 'success' });
       } catch (error) {
         console.error(error);
+        this.addLog({ timestamp, command, result: 'failed' });
       }
     },
     async runNpmBuild(project) {
       project.isBuilding = true;
+      const command = `--prefix ${project.path} run build`;
+      const timestamp = new Date().toISOString();
       try {
-        const result = await ipcRenderer.invoke('run-npm-command', `--prefix ${project.path} run build`);
+        const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
+        this.addLog({ timestamp, command, result: 'success' });
       } catch (error) {
         console.error(error);
+        this.addLog({ timestamp, command, result: 'failed' });
       } finally {
         this.$nextTick(() => {
           project.isBuilding = false;
         });
       }
-      
     },
     toggleOptionsMenu(project) {
       this.projects.forEach(p => {
