@@ -2,8 +2,9 @@
   <div class="timeline-log" ref="timelineLog">
     <timeline-list
       class="h-100"
-      title="Command Logs"
-      description="Logs of executed commands"
+      title="Logs"
+      description="Of executed commands"
+      ref="timelineList"
     >
       <timeline-item
         v-for="log in logs"
@@ -40,7 +41,7 @@ export default {
   methods: {
     scrollToBottom() {
       this.$nextTick(() => {
-        const container = this.$refs.timelineLog;
+        const container = this.$refs.timelineList.$el.querySelector('.timeline.timeline-one-side');
         if (container) {
           container.scrollTop = container.scrollHeight;
         }
@@ -51,8 +52,8 @@ export default {
 </script>
 
 <style>
-.timeline-log {
-  max-height: 400px;
+.timeline-log .timeline.timeline-one-side {
+  max-height: 200px;
   overflow-y: auto;
 }
 </style>
