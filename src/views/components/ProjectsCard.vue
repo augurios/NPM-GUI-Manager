@@ -212,6 +212,7 @@ export default {
     async runNpmInstall(projectPath) {
       const command = `--prefix ${projectPath} install`;
       const timestamp = new Date().toISOString();
+      this.addLog({ timestamp, command, result: 'running' });
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
@@ -225,6 +226,7 @@ export default {
       project.isBuilding = true;
       const command = `--prefix ${project.path} run build`;
       const timestamp = new Date().toISOString();
+      this.addLog({ timestamp, command, result: 'running' });
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
