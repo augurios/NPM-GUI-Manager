@@ -154,3 +154,37 @@ ipcMain.handle('check-nvm-node', async () => {
     });
   });
 });
+
+ipcMain.handle('build-and-upload', async (event, config) => {
+  const { host, port, username, password, localPath, remotePath } = config;
+  return new Promise((resolve, reject) => {
+    exec('npm run build', (buildError, buildStdout, buildStderr) => {
+      if (buildError) {
+        reject(buildStderr);
+        return;
+      }
+      const conn = new Client();
+      conn.on('ready', () => {
+        conn.sftp((err, sftp) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          sftp.fastPut(localPath, remotePath, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve('Build and upload successful');
+            }
+            conn.end();
+          });
+        });
+      }).connect({
+        host,
+        port,
+        username,
+        password
+      });
+    });
+  });
+});

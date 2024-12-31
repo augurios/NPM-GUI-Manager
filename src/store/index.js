@@ -70,6 +70,12 @@ export default createStore({
     addLog(state, log) {
       state.logs.push(log);
     },
+    updateProjectFtp(state, { project, ftpConfig }) {
+      const proj = state.projects.find(p => p.name === project.name);
+      if (proj) {
+        proj.ftpConfig = ftpConfig;
+      }
+    },
   },
   actions: {
     toggleSidebarColor({ commit }, payload) {

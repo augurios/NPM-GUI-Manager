@@ -41,21 +41,17 @@
               <td class="align-middle text-center text-sm">
                 <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
               </td>
-              <td class="align-middle">
+              <td class="align-middle text-right">
+                <button v-if="project.ftpConfig" class="btn btn-info ms-2" @click="uploadBuild(project)" :disabled="project.isBuilding">
+                  <i v-if="!project.isBuilding" class="fa fa-upload make-inline" aria-hidden="true"></i>
+                  <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
+                </button>
                 <button class="btn btn-success ms-2" @click="runNpmBuild(project)" :disabled="project.isBuilding">
                   <i v-if="!project.isBuilding" class="fa fa-hammer make-inline" aria-hidden="true"></i>
                   <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
                 </button>
-                <div class="dropdown make-inline">
-                  <button class="btn btn-link text-secondary mb-0" @click="toggleOptionsMenu(project)" data-bs-toggle="dropdown">
-                    <i class="fa fa-ellipsis-v text-xs" aria-hidden="true"></i>
-                  </button>
-                  <ul class="dropdown-menu" :class="{ show: project.showOptions }">
-                    <li><a class="dropdown-item" @click="confirmDelete(project)">Delete</a></li>
-                    <li><a class="dropdown-item" @click="runNpmInstall(project.path)">Run npm install</a></li>
-                  </ul>
-                </div>
                 
+                <OptionsDropdown :project="project" @confirmDelete="confirmDelete" @runNpmInstall="runNpmInstall" @addFtp="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu"/>
               </td>
             </tr>
           </tbody>
@@ -89,6 +85,23 @@
         </template>
       </ModalPrompt>
     </div>
+    <div v-if="showFtpModal">
+      <ModalPrompt @close="closeFtpModal">
+        <template v-slot:title>
+          Enter FTP Details
+        </template>
+        <template v-slot:body>
+          <soft-input @input="updateFtpHost" type="text" placeholder="FTP Host" aria-label="FTP Host" :isRequired="true" />
+          <soft-input @input="updateFtpPort" type="text" placeholder="FTP Port" aria-label="FTP Port" :isRequired="true" />
+          <soft-input @input="updateFtpUser" type="text" placeholder="FTP User" aria-label="FTP User" :isRequired="true" />
+          <soft-input @input="updateFtpPassword" type="password" placeholder="FTP Password" aria-label="FTP Password" :isRequired="true" />
+          <soft-input @input="updateFtpPath" type="text" placeholder="FTP Path" aria-label="FTP Path" :isRequired="true" />
+        </template>
+        <template v-slot:footer>
+          <soft-button color="dark" full-width variant="gradient" @click="saveFtpDetails">Save</soft-button>
+        </template>
+      </ModalPrompt>
+    </div>
   </div>
 </template>
 
@@ -98,6 +111,7 @@ import setTooltip from "@/assets/js/tooltip.js";
 import ModalPrompt from "@/components/ModalPrompt.vue";
 import SoftInput from "@/components/SoftInput.vue";
 import SoftButton from "@/components/SoftButton.vue";
+import OptionsDropdown from "@/components/OptionsDropdown.vue";
 const { ipcRenderer } = window.electron;
 const path = require('path');
 
@@ -107,6 +121,7 @@ export default {
     ModalPrompt,
     SoftInput,
     SoftButton,
+    OptionsDropdown,
   },
   data() {
     return {
@@ -114,14 +129,23 @@ export default {
       projectName: '',
       showModal: false,
       showDeleteModal: false,
-      projectToDelete: null
+      projectToDelete: null,
+      showFtpModal: false,
+      ftpDetails: {
+        host: '',
+        port: '',
+        user: '',
+        password: '',
+        path: ''
+      },
+      projectToAddFtp: null
     };
   },
   computed: {
     ...mapState(["projects"]),
   },
   methods: {
-    ...mapMutations(["addProjectToStore", "removeProjectFromStore", "addLog"]),
+    ...mapMutations(["addProjectToStore", "removeProjectFromStore", "addLog", "updateProjectFtp"]),
     async addProject() {
       const folderPath = await this.browseFolder();
       this.showModal = true; 
@@ -255,6 +279,55 @@ export default {
       this.projects.forEach(project => {
         project.isBuilding = false;
       });
+    },
+    showFtpModalAction(project) {
+      this.projectToAddFtp = project;
+      this.showFtpModal = true;
+    },
+    closeFtpModal() {
+      this.showFtpModal = false;
+      this.projectToAddFtp = null;
+    },
+    saveFtpDetails() {
+      if (this.projectToAddFtp) {
+        this.updateProjectFtp({ 
+          project: this.projectToAddFtp, 
+          ftpConfig: this.ftpDetails 
+        });
+      }
+      this.closeFtpModal();
+    },
+    updateFtpHost(event) {
+      this.ftpDetails.host = event.target.value;
+    },
+    updateFtpPort(event) {
+      this.ftpDetails.port = event.target.value;
+    },
+    updateFtpUser(event) {
+      this.ftpDetails.user = event.target.value;
+    },
+    updateFtpPassword(event) {
+      this.ftpDetails.password = event.target.value;
+    },
+    updateFtpPath(event) {
+      this.ftpDetails.path = event.target.value;
+    },
+    async uploadBuild(project) {
+      await this.runNpmBuild(project);
+      const config = {
+        host: project.ftpConfig.host,
+        port: project.ftpConfig.port,
+        username: project.ftpConfig.user,
+        password: project.ftpConfig.password,
+        localPath: path.join(project.path, 'build'),
+        remotePath: project.ftpConfig.path
+      };
+      try {
+        const result = await ipcRenderer.invoke('push-to-remote', config);
+        console.log(result);
+      } catch (error) {
+        console.error(error);
+      }
     }
   },
   mounted() {
@@ -279,6 +352,18 @@ export default {
   overflow-x: initial !important;
 }
 .make-inline {
-  display: inline !important;
+  display: inline-block !important;
+}
+
+.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+td.align-middle.text-right {
+    text-align: end;
 }
 </style>
