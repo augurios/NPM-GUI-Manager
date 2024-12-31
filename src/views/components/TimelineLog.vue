@@ -32,6 +32,14 @@ export default {
   computed: {
     ...mapState(["logs"]),
   },
+  watch: {
+    logs: {
+      handler() {
+        this.scrollToBottom();
+      },
+      deep: true
+    }
+  },
   mounted() {
     this.scrollToBottom();
   },
