@@ -1,5 +1,5 @@
 <template>
-  <div class="timeline-log">
+  <div class="timeline-log" ref="timelineLog">
     <timeline-list
       class="h-100"
       title="Command Logs"
@@ -31,13 +31,20 @@ export default {
   computed: {
     ...mapState(["logs"]),
   },
+  mounted() {
+    this.scrollToBottom();
+  },
   updated() {
     this.scrollToBottom();
   },
   methods: {
     scrollToBottom() {
-      const container = this.$el.querySelector('.timeline-log');
-      container.scrollTop = container.scrollHeight;
+      this.$nextTick(() => {
+        const container = this.$refs.timelineLog;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
     }
   }
 };

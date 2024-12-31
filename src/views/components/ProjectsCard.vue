@@ -216,10 +216,10 @@ export default {
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
-        this.addLog({ timestamp, command, result: 'success' });
+        this.addLog({ timestamp, command, result: 'success', response: result });
       } catch (error) {
         console.error(error);
-        this.addLog({ timestamp, command, result: 'failed' });
+        this.addLog({ timestamp, command, result: 'failed', response: error });
       }
     },
     async runNpmBuild(project) {
@@ -230,10 +230,10 @@ export default {
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
-        this.addLog({ timestamp, command: `${project.name} build`, result: 'success' });
+        this.addLog({ timestamp, command: `${project.name} build`, result: 'success', response: result });
       } catch (error) {
         console.error(error);
-        this.addLog({ timestamp, command: `${project.name} build`, result: 'failed' });
+        this.addLog({ timestamp, command: `${project.name} build`, result: 'failed', response: error });
       } finally {
         this.$nextTick(() => {
           project.isBuilding = false;
