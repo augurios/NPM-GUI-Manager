@@ -226,14 +226,14 @@ export default {
       project.isBuilding = true;
       const command = `--prefix ${project.path} run build`;
       const timestamp = new Date().toISOString();
-      this.addLog({ timestamp, command, result: 'running' });
+      this.addLog({ timestamp, command: `${project.name} build`, result: 'running' });
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
-        this.addLog({ timestamp, command, result: 'success' });
+        this.addLog({ timestamp, command: `${project.name} build`, result: 'success' });
       } catch (error) {
         console.error(error);
-        this.addLog({ timestamp, command, result: 'failed' });
+        this.addLog({ timestamp, command: `${project.name} build`, result: 'failed' });
       } finally {
         this.$nextTick(() => {
           project.isBuilding = false;
@@ -250,10 +250,16 @@ export default {
     },
     updatePrName(event) {
       this.projectName = event.target.value;
+    },
+    resetBuildingStatus() {
+      this.projects.forEach(project => {
+        project.isBuilding = false;
+      });
     }
   },
   mounted() {
     setTooltip();
+    this.resetBuildingStatus();
   },
 };
 </script>
