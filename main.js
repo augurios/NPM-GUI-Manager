@@ -107,3 +107,50 @@ ipcMain.handle('read-file', async (event, filePath) => {
   const data = await fs.promises.readFile(filePath, { encoding: 'base64' });
   return `data:image/${path.extname(filePath).slice(1)};base64,${data}`;
 });
+
+ipcMain.handle('get-versions', async () => {
+  return new Promise((resolve, reject) => {
+    const nvmPath = path.join(process.env.HOME, '.nvm/nvm.sh');
+    const command = `. ${nvmPath} && nvm use default && node -v && npm -v`;
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
+      } else {
+        const [nodeComment, nodeVersion, npmVersion] = stdout.split('\n').filter(Boolean);
+        resolve({ nodeVersion, npmVersion, nodeComment });
+      }
+    });
+  });
+});
+
+ipcMain.handle('check-nvm-node', async () => {
+  return new Promise((resolve, reject) => {
+    exec('command -v nvm', (error, stdout, stderr) => {
+      if (error) {
+        // nvm is not installed, install it
+        const installNvmCommand = `
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && \
+          export NVM_DIR="$HOME/.nvm" && \
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+          nvm install node
+        `;
+        exec(installNvmCommand, (installError, installStdout, installStderr) => {
+          if (installError) {
+            reject(installStderr);
+          } else {
+            resolve('nvm and node installed successfully');
+          }
+        });
+      } else {
+        // nvm is installed, check node
+        exec('nvm use default && node -v', (nodeError, nodeStdout, nodeStderr) => {
+          if (nodeError) {
+            reject(nodeStderr);
+          } else {
+            resolve(`nvm and node are already installed: ${nodeStdout}`);
+          }
+        });
+      }
+    });
+  });
+});
