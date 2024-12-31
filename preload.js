@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  getVersions: () => ipcRenderer.invoke('get-versions')
+  getVersions: () => ipcRenderer.invoke('get-versions'),
+  checkNvmAndNode: () => ipcRenderer.invoke('check-nvm-node')
 });
 
 contextBridge.exposeInMainWorld('electron', {
