@@ -12,7 +12,7 @@
         :color="log.result === 'success' ? 'success' : log.result === 'failed' ? 'danger' : 'warning'"
         :icon="log.result === 'success' ? 'check-bold' : log.result === 'failed' ? 'fat-remove' : 'bell-55'"
         :title="log.command"
-        :date-time="log.timestamp"
+        :date-time="getComment(log)"
         :response="log.response"
         @item-clicked="showModal"
       />
@@ -80,6 +80,10 @@ export default {
         this.modalContent = response.replace(/\u001b\[[0-9;]*m/g,'');
         this.modalVisible = true;
       }
+    },
+    getComment(log) {
+      const prefix = log.result === 'success' ? 'Completed' : log.result === 'failed' ? 'Failed' : 'Initiated'
+      return `${prefix} at ${log.timestamp}`;
     }
   }
 };
