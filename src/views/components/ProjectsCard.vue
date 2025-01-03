@@ -1,127 +1,32 @@
 <template>
   <div class="card">
-    <div class="card-header pb-0">
-      <div class="row">
-        <div class="col-lg-6 col-7">
-          <h6>Projects</h6>
-          <!-- <p class="text-sm mb-0">
-            <i class="fa fa-check text-info" aria-hidden="true"></i>
-            <span class="font-weight-bold ms-1">{{ projects.length }} done</span> this month
-          </p> -->
-        </div>
-        <div class="col-lg-6 col-5 my-auto text-end">
-          <button @click="addProject" class="btn btn-primary">Add Project</button>
-        </div>
-      </div>
-    </div>
-    <div class="card-body px-0 pb-2">
-      <div class="table-responsive">
-        <table class="table align-items-center mb-0">
-          <thead>
-            <tr>
-              <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project Name</th>
-              <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Path</th>
-              <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">...</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="project in projects" :key="project.name">
-              <td>
-                <div class="d-flex px-2 py-1">
-                  <div>
-                    <div class="avatar avatar-sm me-3">
-                      <img :src="project.favicon || '/img/logo-xd.c0c96993.svg'" alt="favicon" class="null null null">
-                    </div>
-                  </div>
-                  <div class="d-flex flex-column justify-content-center">
-                      <h6 class="mb-0 text-sm">{{ project.name }}</h6>
-                  </div>
-                </div>
-              </td>
-              <td class="align-middle text-center text-sm">
-                <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
-              </td>
-              <td class="align-middle text-right">
-                <button v-if="project.ftpConfig" class="btn btn-info ms-2" @click="uploadBuild(project)" :disabled="project.isBuilding">
-                  <i v-if="!project.isBuilding" class="fa fa-upload make-inline" aria-hidden="true"></i>
-                  <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
-                </button>
-                <button class="btn btn-success ms-2" @click="runNpmBuild(project)" :disabled="project.isBuilding">
-                  <i v-if="!project.isBuilding" class="fa fa-hammer make-inline" aria-hidden="true"></i>
-                  <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
-                </button>
-                
-                <OptionsDropdown :project="project" @confirmDelete="confirmDelete" @runNpmInstall="runNpmInstall" @addFtp="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu"/>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div v-if="showModal">
-      <ModalPrompt @close="closeModal">
-        <template v-slot:title>
-          Enter Project Name
-        </template>
-        <template v-slot:body>
-          <soft-input @input="updatePrName" type="text" placeholder="Project Name" aria-label="Project Name" :isRequired="true" />
-        </template>
-        <template v-slot:footer>
-          <soft-button color="dark" full-width variant="gradient" @click="saveProjectName">Save</soft-button>
-        </template>
-      </ModalPrompt>
-    </div>
-    <div v-if="showDeleteModal">
-      <ModalPrompt @close="closeDeleteModal">
-        <template v-slot:title>
-          Confirm Deletion
-        </template>
-        <template v-slot:body>
-          <p>Are you sure you want to delete the project "{{ projectToDelete.name }}"?</p>
-        </template>
-        <template v-slot:footer>
-          <soft-button color="dark" variant="gradient" @click="deleteProject">Delete</soft-button>
-          <soft-button color="secondary" variant="gradient" @click="closeDeleteModal">Cancel</soft-button>
-        </template>
-      </ModalPrompt>
-    </div>
-    <div v-if="showFtpModal">
-      <ModalPrompt @close="closeFtpModal">
-        <template v-slot:title>
-          Enter FTP Details
-        </template>
-        <template v-slot:body>
-          <soft-input @input="updateFtpHost" type="text" placeholder="FTP Host" aria-label="FTP Host" :isRequired="true" />
-          <soft-input @input="updateFtpPort" type="text" placeholder="FTP Port" aria-label="FTP Port" :isRequired="true" />
-          <soft-input @input="updateFtpUser" type="text" placeholder="FTP User" aria-label="FTP User" :isRequired="true" />
-          <soft-input @input="updateFtpPassword" type="password" placeholder="FTP Password" aria-label="FTP Password" :isRequired="true" />
-          <soft-input @input="updateFtpPath" type="text" placeholder="FTP Path" aria-label="FTP Path" :isRequired="true" />
-        </template>
-        <template v-slot:footer>
-          <soft-button color="dark" full-width variant="gradient" @click="saveFtpDetails">Save</soft-button>
-        </template>
-      </ModalPrompt>
-    </div>
+    <ProjectsCardHeader @addProject="addProject" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" />
+    <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
+    <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
+    <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" />
   </div>
 </template>
 
 <script>
 import { mapState, mapMutations } from "vuex";
 import setTooltip from "@/assets/js/tooltip.js";
-import ModalPrompt from "@/components/ModalPrompt.vue";
-import SoftInput from "@/components/SoftInput.vue";
-import SoftButton from "@/components/SoftButton.vue";
-import OptionsDropdown from "@/components/OptionsDropdown.vue";
+import ProjectsCardHeader from "@/components/ProjectsCardHeader.vue";
+import ProjectsCardBody from "@/components/ProjectsCardBody.vue";
+import ProjectModal from "@/components/ProjectModal.vue";
+import DeleteModal from "@/components/DeleteModal.vue";
+import FtpModal from "@/components/FtpModal.vue";
 const { ipcRenderer } = window.electron;
 const path = require('path');
 
 export default {
   name: "projects-card",
   components: {
-    ModalPrompt,
-    SoftInput,
-    SoftButton,
-    OptionsDropdown,
+    ProjectsCardHeader,
+    ProjectsCardBody,
+    ProjectModal,
+    DeleteModal,
+    FtpModal,
   },
   data() {
     return {
@@ -278,6 +183,7 @@ export default {
     resetBuildingStatus() {
       this.projects.forEach(project => {
         project.isBuilding = false;
+        project.isUploading = false;
       });
     },
     showFtpModalAction(project) {
@@ -313,6 +219,7 @@ export default {
       this.ftpDetails.path = event.target.value;
     },
     async uploadBuild(project) {
+      project.isUploading = true;
       await this.runNpmBuild(project);
       const config = {
         host: project.ftpConfig.host,
@@ -327,6 +234,10 @@ export default {
         console.log(result);
       } catch (error) {
         console.error(error);
+      } finally {
+        this.$nextTick(() => {
+          project.isUploading = false;
+        });
       }
     }
   },
@@ -338,8 +249,6 @@ export default {
 </script>
 
 <style>
-
-
 .pj-path {
   max-width: 200px;
   overflow: hidden;
