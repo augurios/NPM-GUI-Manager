@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const { Client } = require('ssh2');
+const ftp = require('basic-ftp');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -66,30 +67,29 @@ ipcMain.handle('run-npm-command', async (event, command) => {
 
 ipcMain.handle('push-to-remote', async (event, config) => {
   const { host, port, username, password, localPath, remotePath } = config;
-  return new Promise((resolve, reject) => {
-    const conn = new Client();
-    conn.on('ready', () => {
-      conn.sftp((err, sftp) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        sftp.fastPut(localPath, remotePath, (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve('File uploaded successfully');
-          }
-          conn.end();
-        });
-      });
-    }).connect({
+  console.log('Starting push-to-remote with config:', config);
+
+  const client = new ftp.Client();
+  client.ftp.verbose = true;
+
+  try {
+    await client.access({
       host,
       port,
-      username,
-      password
+      user: username,
+      password,
+      secure: false
     });
-  });
+    console.log('FTP connection established.');
+    await client.uploadFrom(localPath, remotePath);
+    console.log('File uploaded successfully.');
+    return 'File uploaded successfully';
+  } catch (err) {
+    console.error('FTP error:', err);
+    throw err;
+  } finally {
+    client.close();
+  }
 });
 
 ipcMain.handle('custom-readdir', async (event, dir) => {
@@ -157,28 +157,42 @@ ipcMain.handle('check-nvm-node', async () => {
 
 ipcMain.handle('build-and-upload', async (event, config) => {
   const { host, port, username, password, localPath, remotePath } = config;
+  console.log('Starting build-and-upload process with config:', config);
+  
   return new Promise((resolve, reject) => {
+    console.log('Running npm build command...');
     exec('npm run build', (buildError, buildStdout, buildStderr) => {
       if (buildError) {
+        console.error('Build error:', buildStderr);
         reject(buildStderr);
         return;
       }
+      console.log('Build output:', buildStdout);
+      
       const conn = new Client();
       conn.on('ready', () => {
+        console.log('SSH connection ready.');
         conn.sftp((err, sftp) => {
           if (err) {
+            console.error('SFTP error:', err);
             reject(err);
             return;
           }
+          console.log('SFTP connection established. Uploading file...');
           sftp.fastPut(localPath, remotePath, (err) => {
             if (err) {
+              console.error('File upload error:', err);
               reject(err);
             } else {
+              console.log('File uploaded successfully.');
               resolve('Build and upload successful');
             }
             conn.end();
           });
         });
+      }).on('error', (err) => {
+        console.error('SSH connection error:', err);
+        reject(err);
       }).connect({
         host,
         port,

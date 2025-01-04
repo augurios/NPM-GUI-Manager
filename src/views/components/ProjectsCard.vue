@@ -226,7 +226,7 @@ export default {
         port: project.ftpConfig.port,
         username: project.ftpConfig.user,
         password: project.ftpConfig.password,
-        localPath: path.join(project.path, 'build'),
+        localPath: path.join(project.path, 'dist'),
         remotePath: project.ftpConfig.path
       };
       try {
