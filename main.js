@@ -82,9 +82,11 @@ ipcMain.handle('push-to-remote', async (event, config) => {
         secure: false
       });
       console.log('FTP connection established.');
-      await client.uploadFrom(localPath, remotePath);
-      console.log('File uploaded successfully.');
-      return 'File uploaded successfully';
+      await client.ensureDir(remotePath);
+      await client.clearWorkingDir();
+      await client.uploadFromDir(localPath);
+      console.log('All files uploaded successfully.');
+      return 'All files uploaded successfully';
     } catch (err) {
       console.error('FTP error:', err);
       throw err;
@@ -102,15 +104,33 @@ ipcMain.handle('push-to-remote', async (event, config) => {
             reject(err);
             return;
           }
-          console.log('SFTP connection established. Uploading file...');
-          sftp.fastPut(localPath, remotePath, (err) => {
-            if (err) {
-              console.error('File upload error:', err);
-              reject(err);
-            } else {
-              console.log('File uploaded successfully.');
-              resolve('File uploaded successfully');
+          console.log('SFTP connection established. Uploading files...');
+          const uploadDir = async (localDir, remoteDir) => {
+            const files = await fs.promises.readdir(localDir);
+            for (const file of files) {
+              const localFilePath = path.join(localDir, file);
+              const remoteFilePath = path.join(remoteDir, file);
+              const stats = await fs.promises.stat(localFilePath);
+              if (stats.isDirectory()) {
+                await sftp.mkdir(remoteFilePath, true);
+                await uploadDir(localFilePath, remoteFilePath);
+              } else {
+                await new Promise((res, rej) => {
+                  sftp.fastPut(localFilePath, remoteFilePath, (err) => {
+                    if (err) rej(err);
+                    else res();
+                  });
+                });
+              }
             }
+          };
+          uploadDir(localPath, remotePath).then(() => {
+            console.log('All files uploaded successfully.');
+            resolve('All files uploaded successfully');
+            conn.end();
+          }).catch((err) => {
+            console.error('File upload error:', err);
+            reject(err);
             conn.end();
           });
         });

@@ -230,6 +230,8 @@ export default {
     },
     async uploadBuild(project) {
       project.isUploading = true;
+      const timestamp = new Date().toISOString();
+      this.addLog({ timestamp, command: `${project.name} build`, result: 'running', response: 'Running build command' });
       await this.runNpmBuild(project);
       const config = {
         host: project.ftpConfig.host,
@@ -240,11 +242,14 @@ export default {
         remotePath: project.ftpConfig.path,
         protocol: project.ftpConfig.protocol
       };
+      this.addLog({ timestamp, command: `${project.name} upload`, result: 'running', response: 'Uploading build' });
       try {
         const result = await ipcRenderer.invoke('push-to-remote', config);
         console.log(result);
+        this.addLog({ timestamp, command: `${project.name} upload`, result: 'success', response: result });
       } catch (error) {
         console.error(error);
+        this.addLog({ timestamp, command: `${project.name} upload`, result: 'failed', response: error.message });
       } finally {
         this.$nextTick(() => {
           project.isUploading = false;
