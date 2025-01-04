@@ -7,6 +7,7 @@
       <li><a class="dropdown-item" @click="confirmDelete(project)">Delete</a></li>
       <li><a class="dropdown-item" @click="runNpmInstall(project.path)">Run npm install</a></li>
       <li><a class="dropdown-item" v-if="!project.ftpConfig" @click="addFtp(project)">Add FTP</a></li>
+      <li><a class="dropdown-item" v-if="project.ftpConfig" @click="editFtp(project)">Edit FTP</a></li>
     </ul>
   </div>
 </template>
@@ -29,6 +30,9 @@ export default {
     },
     addFtp(project) {
       this.$emit('add-ftp', project);
+    },
+    editFtp(project) {
+      this.$emit('edit-ftp', project);
     }
   }
 };

@@ -1,10 +1,10 @@
 <template>
   <div class="card">
     <ProjectsCardHeader @addProject="addProject" />
-    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" />
     <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
     <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
-    <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" />
+    <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" @updateFtpProtocol="updateFtpProtocol" :ftpDetails="ftpDetails" />
   </div>
 </template>
 
@@ -41,7 +41,8 @@ export default {
         port: '',
         user: '',
         password: '',
-        path: ''
+        path: '',
+        protocol: 'ftp' // Add protocol field
       },
       projectToAddFtp: null
     };
@@ -203,6 +204,12 @@ export default {
       }
       this.closeFtpModal();
     },
+    editFtpDetails(project) {
+      this.projectToAddFtp = project;
+      this.ftpDetails = { ...project.ftpConfig };
+      console.log('this.ftpDetails',this.ftpDetails)
+      this.showFtpModal = true;
+    },
     updateFtpHost(event) {
       this.ftpDetails.host = event.target.value;
     },
@@ -218,6 +225,9 @@ export default {
     updateFtpPath(event) {
       this.ftpDetails.path = event.target.value;
     },
+    updateFtpProtocol(event) {
+      this.ftpDetails.protocol = event.target.value;
+    },
     async uploadBuild(project) {
       project.isUploading = true;
       await this.runNpmBuild(project);
@@ -227,7 +237,8 @@ export default {
         username: project.ftpConfig.user,
         password: project.ftpConfig.password,
         localPath: path.join(project.path, 'dist'),
-        remotePath: project.ftpConfig.path
+        remotePath: project.ftpConfig.path,
+        protocol: project.ftpConfig.protocol
       };
       try {
         const result = await ipcRenderer.invoke('push-to-remote', config);

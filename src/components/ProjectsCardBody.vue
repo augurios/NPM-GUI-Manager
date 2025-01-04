@@ -36,7 +36,7 @@
                 <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
               </button>
               
-              <OptionsDropdown :project="project" @confirm-delete="$emit('confirm-delete', project)" @run-npm-install="$emit('run-npm-install', project)" @add-ftp="$emit('show-ftp-modal-action', project)" @toggle-options-menu="$emit('toggle-options-menu', project)"/>
+              <OptionsDropdown :project="project" @confirm-delete="$emit('confirm-delete', project)" @run-npm-install="$emit('run-npm-install', project)" @add-ftp="$emit('show-ftp-modal-action', project)" @edit-ftp="$emit('edit-ftp-details', project)" @toggle-options-menu="$emit('toggle-options-menu', project)"/>
             </td>
           </tr>
         </tbody>

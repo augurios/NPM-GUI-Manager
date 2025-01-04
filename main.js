@@ -66,29 +66,66 @@ ipcMain.handle('run-npm-command', async (event, command) => {
 });
 
 ipcMain.handle('push-to-remote', async (event, config) => {
-  const { host, port, username, password, localPath, remotePath } = config;
+  const { host, port, username, password, localPath, remotePath, protocol } = config;
   console.log('Starting push-to-remote with config:', config);
 
-  const client = new ftp.Client();
-  client.ftp.verbose = true;
+  if (protocol === 'ftp') {
+    const client = new ftp.Client();
+    client.ftp.verbose = true;
 
-  try {
-    await client.access({
-      host,
-      port,
-      user: username,
-      password,
-      secure: false
+    try {
+      await client.access({
+        host,
+        port,
+        user: username,
+        password,
+        secure: false
+      });
+      console.log('FTP connection established.');
+      await client.uploadFrom(localPath, remotePath);
+      console.log('File uploaded successfully.');
+      return 'File uploaded successfully';
+    } catch (err) {
+      console.error('FTP error:', err);
+      throw err;
+    } finally {
+      client.close();
+    }
+  } else if (protocol === 'sftp') {
+    const conn = new Client();
+    return new Promise((resolve, reject) => {
+      conn.on('ready', () => {
+        console.log('SSH connection ready.');
+        conn.sftp((err, sftp) => {
+          if (err) {
+            console.error('SFTP error:', err);
+            reject(err);
+            return;
+          }
+          console.log('SFTP connection established. Uploading file...');
+          sftp.fastPut(localPath, remotePath, (err) => {
+            if (err) {
+              console.error('File upload error:', err);
+              reject(err);
+            } else {
+              console.log('File uploaded successfully.');
+              resolve('File uploaded successfully');
+            }
+            conn.end();
+          });
+        });
+      }).on('error', (err) => {
+        console.error('SSH connection error:', err);
+        reject(err);
+      }).connect({
+        host,
+        port,
+        username,
+        password
+      });
     });
-    console.log('FTP connection established.');
-    await client.uploadFrom(localPath, remotePath);
-    console.log('File uploaded successfully.');
-    return 'File uploaded successfully';
-  } catch (err) {
-    console.error('FTP error:', err);
-    throw err;
-  } finally {
-    client.close();
+  } else {
+    throw new Error('Unsupported protocol');
   }
 });
 
