@@ -128,6 +128,7 @@ export default {
       this.showModal = false;
     },
     confirmDelete(project) {
+      this.closeOptionsMenu();
       this.projectToDelete = project;
       this.showDeleteModal = true;
     },
@@ -140,6 +141,7 @@ export default {
       this.closeDeleteModal();
     },
     async runNpmInstall(projectPath) {
+      this.closeOptionsMenu();
       const command = `--prefix ${projectPath} install`;
       const timestamp = new Date().toISOString();
       this.addLog({ timestamp, command, result: 'running' });
@@ -153,6 +155,7 @@ export default {
       }
     },
     async runNpmBuild(project) {
+      this.closeOptionsMenu();
       project.isBuilding = true;
       const command = `--prefix ${project.path} run build`;
       const timestamp = new Date().toISOString();
@@ -178,6 +181,11 @@ export default {
       });
       project.showOptions = !project.showOptions;
     },
+    closeOptionsMenu() {
+      this.projects.forEach(p => {
+        p.showOptions = false;
+      });
+    },
     updatePrName(event) {
       this.projectName = event.target.value;
     },
@@ -188,6 +196,7 @@ export default {
       });
     },
     showFtpModalAction(project) {
+      this.closeOptionsMenu();
       this.projectToAddFtp = project;
       this.showFtpModal = true;
     },
@@ -205,6 +214,7 @@ export default {
       this.closeFtpModal();
     },
     editFtpDetails(project) {
+      this.closeOptionsMenu();
       this.projectToAddFtp = project;
       this.ftpDetails = { ...project.ftpConfig };
       console.log('this.ftpDetails',this.ftpDetails)
