@@ -37,22 +37,6 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   return dialog.showOpenDialog(options);
 });
 
-ipcMain.handle('show-message-box', async (event, options) => {
-  return dialog.showMessageBox(options);
-});
-
-ipcMain.handle('get-file-list', async (event, dirPath) => {
-  return new Promise((resolve, reject) => {
-    fs.readdir(dirPath, (err, files) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(files);
-      }
-    });
-  });
-});
-
 ipcMain.handle('run-npm-command', async (event, command) => {
   return new Promise((resolve, reject) => {
     exec(`npm ${command}`, (error, stdout, stderr) => {
@@ -208,54 +192,6 @@ ipcMain.handle('check-nvm-node', async () => {
           }
         });
       }
-    });
-  });
-});
-
-ipcMain.handle('build-and-upload', async (event, config) => {
-  const { host, port, username, password, localPath, remotePath } = config;
-  console.log('Starting build-and-upload process with config:', config);
-  
-  return new Promise((resolve, reject) => {
-    console.log('Running npm build command...');
-    exec('npm run build', (buildError, buildStdout, buildStderr) => {
-      if (buildError) {
-        console.error('Build error:', buildStderr);
-        reject(buildStderr);
-        return;
-      }
-      console.log('Build output:', buildStdout);
-      
-      const conn = new Client();
-      conn.on('ready', () => {
-        console.log('SSH connection ready.');
-        conn.sftp((err, sftp) => {
-          if (err) {
-            console.error('SFTP error:', err);
-            reject(err);
-            return;
-          }
-          console.log('SFTP connection established. Uploading file...');
-          sftp.fastPut(localPath, remotePath, (err) => {
-            if (err) {
-              console.error('File upload error:', err);
-              reject(err);
-            } else {
-              console.log('File uploaded successfully.');
-              resolve('Build and upload successful');
-            }
-            conn.end();
-          });
-        });
-      }).on('error', (err) => {
-        console.error('SSH connection error:', err);
-        reject(err);
-      }).connect({
-        host,
-        port,
-        username,
-        password
-      });
     });
   });
 });

@@ -15,7 +15,7 @@
               <div class="d-flex px-2 py-1">
                 <div>
                   <div class="avatar avatar-sm me-3">
-                    <img :src="project.favicon || '/img/logo-xd.c0c96993.svg'" alt="favicon" class="null null null">
+                    <img :src="project.favicon || require('@/assets/img/small-logos/logo-webdev.svg')" alt="favicon" class="null null null">
                   </div>
                 </div>
                 <div class="d-flex flex-column justify-content-center">
