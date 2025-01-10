@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <ProjectsCardHeader @addProject="addProject" />
-    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" />
     <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
     <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
     <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" @updateFtpProtocol="updateFtpProtocol" :ftpDetails="ftpDetails" />
@@ -140,18 +140,18 @@ export default {
       this.removeProjectFromStore(this.projectToDelete);
       this.closeDeleteModal();
     },
-    async runNpmInstall(projectPath) {
+    async runNpmInstall(project) {
       this.closeOptionsMenu();
-      const command = `--prefix ${projectPath} install`;
+      const command = `--prefix ${project.path} install`;
       const timestamp = new Date().toISOString();
-      this.addLog({ timestamp, command, result: 'running' });
+      this.addLog({ timestamp, command: `${project.name} install`, result: 'running', response: command });
       try {
         const result = await ipcRenderer.invoke('run-npm-command', command);
         console.log(result);
-        this.addLog({ timestamp, command, result: 'success', response: result });
+        this.addLog({ timestamp, command: `${project.name} install`, result: 'success', response: result });
       } catch (error) {
         console.error(error);
-        this.addLog({ timestamp, command, result: 'failed', response: error });
+        this.addLog({ timestamp, command: `${project.name} install`, result: 'failed', response: error.message });
       }
     },
     async runNpmBuild(project) {
