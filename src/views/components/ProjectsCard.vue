@@ -299,8 +299,8 @@ export default {
 
         ipcRenderer.on('npm-script-close', (event, { projectPath, scriptName, code }) => {
           if (project.path === projectPath) {
-            console.log(`child process exited with code ${code}`);
-            this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: `Process exited with code ${code}` });
+            console.log(`child process exited with code ${code + scriptName}`);
+            // this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: `Process exited with code ${code}` });
             this.$nextTick(() => {
               project.isRunning = false;
               delete this.runningProcesses[project.name];
