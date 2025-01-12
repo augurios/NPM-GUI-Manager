@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <ProjectsCardHeader @addProject="addProject" />
-    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" @toggleScriptsMenu="toggleScriptsMenu" @runScript="runScript" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" @toggleScriptsMenu="toggleScriptsMenu" @runScript="runScript" @stopScript="stopScript" />
     <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
     <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
     <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" @updateFtpProtocol="updateFtpProtocol" :ftpDetails="ftpDetails" />
@@ -276,7 +276,7 @@ export default {
     },
     async runScript(project, scriptName) {
       this.toggleScriptsMenu(project);
-      project.isBuilding = true;
+      project.isRunning = true;
       const command = `--prefix ${project.path} run ${scriptName}`;
       const timestamp = new Date().toISOString();
       this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'running', response: command });
@@ -289,10 +289,15 @@ export default {
         this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'failed', response: error.message });
       } finally {
         this.$nextTick(() => {
-          project.isBuilding = false;
+          project.isRunning = false;
         });
       }
-    }
+    },
+    stopScript(project) {
+      // Implement logic to stop the running script
+      project.isRunning = false;
+      this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} stop`, result: 'stopped', response: 'Script stopped by user' });
+    },
   },
   mounted() {
     setTooltip();

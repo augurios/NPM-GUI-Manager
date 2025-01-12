@@ -27,16 +27,17 @@
               <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
             </td>
             <td class="align-middle text-right">
-              <button v-if="project.ftpConfig" class="btn btn-info ms-2" @click="$emit('upload-build', project)" :disabled="project.isBuilding || project.isUploading">
+              <button v-if="project.ftpConfig" class="btn btn-info ms-2" @click="$emit('upload-build', project)" :disabled="project.isBuilding || project.isUploading || project.isRunning">
                 <i v-if="!project.isUploading" class="fa fa-upload make-inline" aria-hidden="true"></i>
                 <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
               </button>
-              <button class="btn btn-success ms-2" @click="$emit('run-npm-build', project)" :disabled="project.isBuilding || project.isUploading">
+              <button class="btn btn-success ms-2" @click="$emit('run-npm-build', project)" :disabled="project.isBuilding || project.isUploading || project.isRunning">
                 <i v-if="!project.isBuilding" class="fa fa-hammer make-inline" aria-hidden="true"></i>
                 <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
               </button>
-              <button class="btn btn-primary ms-2" @click="toggleScriptsMenu(project)" :disabled="project.isBuilding || project.isUploading">
-                <i class="fa fa-play make-inline" aria-hidden="true"></i>
+              <button class="btn btn-primary ms-2" @click="project.isRunning ? stopScript(project) : toggleScriptsMenu(project)">
+                <i v-if="!project.isRunning" class="fa fa-play make-inline" aria-hidden="true"></i>
+                <i v-else class="fa fa-stop make-inline" aria-hidden="true"></i>
               </button>
               <ScriptsDropdown :project="project" v-if="project.showScriptsMenu" @run-script="$emit('run-script', project, $event)" />
               <OptionsDropdown :project="project" @confirm-delete="$emit('confirm-delete', project)" @run-npm-install="$emit('run-npm-install', project)" @add-ftp="$emit('show-ftp-modal-action', project)" @edit-ftp="$emit('edit-ftp-details', project)" @toggle-options-menu="$emit('toggle-options-menu', project)"/>
@@ -64,6 +65,9 @@ export default {
   methods: {
     toggleScriptsMenu(project) {
       this.$emit('toggle-scripts-menu', project);
+    },
+    stopScript(project) {
+      this.$emit('stop-script', project);
     }
   }
 };

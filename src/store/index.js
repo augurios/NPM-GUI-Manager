@@ -82,6 +82,12 @@ export default createStore({
         proj.showScriptsMenu = !proj.showScriptsMenu;
       }
     },
+    updateRunningStatus(state, { project, isRunning }) {
+      const proj = state.projects.find(p => p.name === project.name);
+      if (proj) {
+        proj.isRunning = isRunning;
+      }
+    },
   },
   actions: {
     toggleSidebarColor({ commit }, payload) {
