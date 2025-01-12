@@ -44,7 +44,8 @@ export default {
         path: '',
         protocol: 'ftp' // Add protocol field
       },
-      projectToAddFtp: null
+      projectToAddFtp: null,
+      runningProcesses: {}
     };
   },
   computed: {
@@ -193,6 +194,7 @@ export default {
       this.projects.forEach(project => {
         project.isBuilding = false;
         project.isUploading = false;
+        project.isRunning = false;
       });
     },
     showFtpModalAction(project) {
@@ -277,26 +279,52 @@ export default {
     async runScript(project, scriptName) {
       this.toggleScriptsMenu(project);
       project.isRunning = true;
-      const command = `--prefix ${project.path} run ${scriptName}`;
       const timestamp = new Date().toISOString();
-      this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'running', response: command });
+      this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'running', response: `npm --prefix ${project.path} run ${scriptName}` });
       try {
-        const result = await ipcRenderer.invoke('run-npm-command', command);
-        console.log(result);
-        this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: result });
+        const pid = await ipcRenderer.invoke('run-npm-script', { projectPath: project.path, scriptName });
+        this.runningProcesses[project.name] = pid;
+
+        ipcRenderer.on('npm-script-output', (event, { projectPath, scriptName, data }) => {
+          if (project.path === projectPath) {
+            console.log(`stdout: ${scriptName}, ${data}`);
+          }
+        });
+
+        ipcRenderer.on('npm-script-error', (event, { projectPath, scriptName, data }) => {
+          if (project.path === projectPath) {
+            console.error(`stderr: ${scriptName}, ${data}`);
+          }
+        });
+
+        ipcRenderer.on('npm-script-close', (event, { projectPath, scriptName, code }) => {
+          if (project.path === projectPath) {
+            console.log(`child process exited with code ${code}`);
+            this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: `Process exited with code ${code}` });
+            this.$nextTick(() => {
+              project.isRunning = false;
+              delete this.runningProcesses[project.name];
+            });
+          }
+        });
       } catch (error) {
         console.error(error);
         this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'failed', response: error.message });
-      } finally {
         this.$nextTick(() => {
           project.isRunning = false;
         });
       }
     },
-    stopScript(project) {
-      // Implement logic to stop the running script
-      project.isRunning = false;
-      this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} stop`, result: 'stopped', response: 'Script stopped by user' });
+    async stopScript(project) {
+      const pid = this.runningProcesses[project.name];
+      if (pid) {
+        await ipcRenderer.invoke('stop-npm-script', pid);
+        this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} stop`, result: 'stopped', response: 'Script stopped by user' });
+        this.$nextTick(() => {
+          project.isRunning = false;
+        });
+        delete this.runningProcesses[project.name];
+      }
     },
   },
   mounted() {

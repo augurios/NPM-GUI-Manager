@@ -49,6 +49,29 @@ ipcMain.handle('run-npm-command', async (event, command) => {
   });
 });
 
+ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName }) => {
+  const command = `npm --prefix ${projectPath} run ${scriptName}`;
+  const childProcess = exec(command);
+
+  childProcess.stdout.on('data', (data) => {
+    event.sender.send('npm-script-output', { projectPath, scriptName, data });
+  });
+
+  childProcess.stderr.on('data', (data) => {
+    event.sender.send('npm-script-error', { projectPath, scriptName, data });
+  });
+
+  childProcess.on('close', (code) => {
+    event.sender.send('npm-script-close', { projectPath, scriptName, code });
+  });
+
+  return childProcess.pid;
+});
+
+ipcMain.handle('stop-npm-script', async (event, pid) => {
+  process.kill(pid);
+});
+
 ipcMain.handle('push-to-remote', async (event, config) => {
   const { host, port, username, password, localPath, remotePath, protocol } = config;
   console.log('Starting push-to-remote with config:', config);
