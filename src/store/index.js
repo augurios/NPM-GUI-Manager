@@ -76,6 +76,12 @@ export default createStore({
         proj.ftpConfig = ftpConfig;
       }
     },
+    toggleScriptsMenu(state, project) {
+      const proj = state.projects.find(p => p.name === project.name);
+      if (proj) {
+        proj.showScriptsMenu = !proj.showScriptsMenu;
+      }
+    },
   },
   actions: {
     toggleSidebarColor({ commit }, payload) {

@@ -35,7 +35,10 @@
                 <i v-if="!project.isBuilding" class="fa fa-hammer make-inline" aria-hidden="true"></i>
                 <i v-else class="fa fa-spinner fa-spin make-inline" aria-hidden="true"></i>
               </button>
-              
+              <button class="btn btn-primary ms-2" @click="toggleScriptsMenu(project)" :disabled="project.isBuilding || project.isUploading">
+                <i class="fa fa-play make-inline" aria-hidden="true"></i>
+              </button>
+              <ScriptsDropdown :project="project" v-if="project.showScriptsMenu" @run-script="$emit('run-script', project, $event)" />
               <OptionsDropdown :project="project" @confirm-delete="$emit('confirm-delete', project)" @run-npm-install="$emit('run-npm-install', project)" @add-ftp="$emit('show-ftp-modal-action', project)" @edit-ftp="$emit('edit-ftp-details', project)" @toggle-options-menu="$emit('toggle-options-menu', project)"/>
             </td>
           </tr>
@@ -47,6 +50,7 @@
 
 <script>
 import OptionsDropdown from "@/components/OptionsDropdown.vue";
+import ScriptsDropdown from "@/components/ScriptsDropdown.vue";
 
 export default {
   name: "ProjectsCardBody",
@@ -54,7 +58,13 @@ export default {
     projects: Array
   },
   components: {
-    OptionsDropdown
+    OptionsDropdown,
+    ScriptsDropdown
+  },
+  methods: {
+    toggleScriptsMenu(project) {
+      this.$emit('toggle-scripts-menu', project);
+    }
   }
 };
 </script>

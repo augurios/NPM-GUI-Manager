@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <ProjectsCardHeader @addProject="addProject" />
-    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" @toggleScriptsMenu="toggleScriptsMenu" @runScript="runScript" />
     <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
     <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
     <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" @updateFtpProtocol="updateFtpProtocol" :ftpDetails="ftpDetails" />
@@ -263,6 +263,33 @@ export default {
       } finally {
         this.$nextTick(() => {
           project.isUploading = false;
+        });
+      }
+    },
+    toggleScriptsMenu(project) {
+      this.projects.forEach(p => {
+        if (p !== project) {
+          p.showScriptsMenu = false;
+        }
+      });
+      project.showScriptsMenu = !project.showScriptsMenu;
+    },
+    async runScript(project, scriptName) {
+      this.toggleScriptsMenu(project);
+      project.isBuilding = true;
+      const command = `--prefix ${project.path} run ${scriptName}`;
+      const timestamp = new Date().toISOString();
+      this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'running', response: command });
+      try {
+        const result = await ipcRenderer.invoke('run-npm-command', command);
+        console.log(result);
+        this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: result });
+      } catch (error) {
+        console.error(error);
+        this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'failed', response: error.message });
+      } finally {
+        this.$nextTick(() => {
+          project.isBuilding = false;
         });
       }
     }

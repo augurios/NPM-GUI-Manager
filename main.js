@@ -195,3 +195,14 @@ ipcMain.handle('check-nvm-node', async () => {
     });
   });
 });
+
+ipcMain.handle('get-npm-scripts', async (event, projectPath) => {
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    const packageJson = JSON.parse(await fs.promises.readFile(packageJsonPath, 'utf-8'));
+    return packageJson.scripts || {};
+  } catch (error) {
+    console.error('Failed to read package.json:', error);
+    throw error;
+  }
+});
