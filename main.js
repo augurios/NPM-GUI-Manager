@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -228,4 +228,8 @@ ipcMain.handle('get-npm-scripts', async (event, projectPath) => {
     console.error('Failed to read package.json:', error);
     throw error;
   }
+});
+
+ipcMain.handle('open-url', async (event, url) => {
+  await shell.openExternal(url);
 });

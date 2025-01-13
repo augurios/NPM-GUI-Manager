@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-3 timeline-block" :class="darkMode" @click="handleClick">
+  <div class="mb-3 timeline-block" :class="darkMode" >
     <span class="timeline-step" :class="darkMode ? 'bg-dark' : ''">
       <i class="ni text-gradient" :class="`ni-${icon} text-${color}`"></i>
     </span>
@@ -7,13 +7,17 @@
       <h6
         class="mb-0 text-sm font-weight-bold"
         :class="darkMode ? 'text-white' : 'text-dark'"
+        @click="handleClick"
       >
         {{ title }}
       </h6>
-      <p class="mt-1 mb-0 text-xs text-secondary font-weight-bold">
+      <p  v-if="!URLavailable" class="mt-1 mb-0 text-xs text-secondary font-weight-bold">
         {{ dateTime }}
       </p>
-      <p v-if="description" class="mt-3 mb-2 text-sm">
+      <p v-if="URLavailable" class="mt-1 mb-2 text-sm">
+        Launch: <a :href="URLavailable" target="_blank" rel="noopener noreferrer" @click.prevent="openUrl">{{ URLavailable }}</a>
+      </p>
+      <p v-else-if="description" class="mt-3 mb-2 text-sm">
         {{ description }}
       </p>
       <span
@@ -28,6 +32,7 @@
   </div>
 </template>
 <script>
+const { ipcRenderer } = window.electron;
 export default {
   name: "TimelineItem",
   props: {
@@ -64,19 +69,36 @@ export default {
       default: "",
     },
   },
+  data() {
+    return {
+      URLavailable: this.extractUrl(this.title)
+    };
+  },
   methods: {
     handleClick() {
       this.$emit('item-clicked', this.response);
+    },
+    isUrl(string) {
+      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      return urlPattern.test(string);
+    },
+    extractUrl(string) {
+      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      const match = string.match(urlPattern);
+      return match ? match[0] : null;
+    },
+    openUrl() {
+      ipcRenderer.invoke('open-url', this.URLavailable);
     }
   }
 };
 </script>
 
 <style scoped>
-.timeline-block {
+.timeline-block h6 {
   cursor: pointer;
 }
-.timeline-block:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+.timeline-block h6:hover {
+  color: #6d85ac !important;
 }
 </style>
