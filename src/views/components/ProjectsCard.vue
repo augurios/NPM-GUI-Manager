@@ -284,13 +284,15 @@ export default {
       try {
         const pid = await ipcRenderer.invoke('run-npm-script', { projectPath: project.path, scriptName });
         this.runningProcesses[project.name] = pid;
+        console.log(`pid: ${pid}`);
 
         ipcRenderer.on('npm-script-output', (event, { projectPath, scriptName, data }) => {
           if (project.path === projectPath) {
-            console.log(`stdout: ${scriptName}, ${data}`);
+            console.log(`listener stdout: ${scriptName}, ${data}`, event);
             const urlRegex = /(https?:\/\/[^\s]+)/g;
             const urls = data.match(urlRegex);
-            if (urls) {
+            console.log(`urls: ${urls}`);
+            if (urls && urls.length) {
               urls.forEach(url => {
                 // eslint-disable-next-line no-control-regex
                 const cleanedUrl = url.replace(/\x1b\[\d{1,2}m/g, ''); // Remove ANSI escape codes
@@ -308,10 +310,13 @@ export default {
 
         ipcRenderer.on('npm-script-close', (event, { projectPath, scriptName, code }) => {
           if (project.path === projectPath) {
-            console.log(`child process exited with code ${code + scriptName}`);
+            const response = `${scriptName} child process exited with code ${code}`
+            console.log(response);
+            this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} ${scriptName}`, result: 'stopped', response: response });
             this.$nextTick(() => {
               project.isRunning = false;
               delete this.runningProcesses[project.name];
+              ipcRenderer.removeAllListeners('npm-script-output');
             });
           }
         });
@@ -320,6 +325,7 @@ export default {
         this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'failed', response: error.message });
         this.$nextTick(() => {
           project.isRunning = false;
+          ipcRenderer.removeAllListeners('npm-script-output');
         });
       }
     },
@@ -332,6 +338,7 @@ export default {
           project.isRunning = false;
         });
         delete this.runningProcesses[project.name];
+        ipcRenderer.removeAllListeners('npm-script-output');
       }
     },
   },

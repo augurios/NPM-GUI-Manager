@@ -54,6 +54,7 @@ ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName }) => {
   const childProcess = exec(command);
 
   childProcess.stdout.on('data', (data) => {
+    // console.log(`childProcess stdout: ${data}`);
     event.sender.send('npm-script-output', { projectPath, scriptName, data });
   });
 
