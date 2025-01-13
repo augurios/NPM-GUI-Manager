@@ -288,6 +288,15 @@ export default {
         ipcRenderer.on('npm-script-output', (event, { projectPath, scriptName, data }) => {
           if (project.path === projectPath) {
             console.log(`stdout: ${scriptName}, ${data}`);
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const urls = data.match(urlRegex);
+            if (urls) {
+              urls.forEach(url => {
+                // eslint-disable-next-line no-control-regex
+                const cleanedUrl = url.replace(/\x1b\[\d{1,2}m/g, ''); // Remove ANSI escape codes
+                this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} ${scriptName} on ${cleanedUrl}`, result: 'success', response: data });
+              });
+            }
           }
         });
 
@@ -300,7 +309,6 @@ export default {
         ipcRenderer.on('npm-script-close', (event, { projectPath, scriptName, code }) => {
           if (project.path === projectPath) {
             console.log(`child process exited with code ${code + scriptName}`);
-            // this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'success', response: `Process exited with code ${code}` });
             this.$nextTick(() => {
               project.isRunning = false;
               delete this.runningProcesses[project.name];
