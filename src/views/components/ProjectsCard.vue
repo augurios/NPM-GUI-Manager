@@ -312,33 +312,42 @@ export default {
           if (project.path === projectPath) {
             const response = `${scriptName} child process exited with code ${code}`
             console.log(response);
-            this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} ${scriptName}`, result: 'stopped', response: response });
+            this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} ${scriptName}`, result: code ? 'completed':'stopped', response: response });
+            
+            ipcRenderer.removeAllListeners('npm-script-close');
             this.$nextTick(() => {
               project.isRunning = false;
               delete this.runningProcesses[project.name];
-              ipcRenderer.removeAllListeners('npm-script-output');
+              
             });
           }
         });
       } catch (error) {
         console.error(error);
         this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'failed', response: error.message });
+        ipcRenderer.removeAllListeners('npm-script-output');
         this.$nextTick(() => {
           project.isRunning = false;
-          ipcRenderer.removeAllListeners('npm-script-output');
+          
         });
       }
     },
     async stopScript(project) {
       const pid = this.runningProcesses[project.name];
+
       if (pid) {
+
+        this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} stopping`, result: 'running', response: 'Script stopped by user' });
+        
         await ipcRenderer.invoke('stop-npm-script', pid);
-        this.addLog({ timestamp: new Date().toISOString(), command: `${project.name} stop`, result: 'stopped', response: 'Script stopped by user' });
+        
+
+        ipcRenderer.removeAllListeners('npm-script-output');
         this.$nextTick(() => {
           project.isRunning = false;
         });
         delete this.runningProcesses[project.name];
-        ipcRenderer.removeAllListeners('npm-script-output');
+        
       }
     },
   },

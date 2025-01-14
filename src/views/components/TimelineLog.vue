@@ -9,10 +9,11 @@
       <timeline-item
         v-for="log in logs"
         :key="log.timestamp"
-        :color="log.result === 'success' ? 'success' : log.result === 'failed' ? 'danger' : 'warning'"
-        :icon="log.result === 'success' ? 'check-bold' : log.result === 'failed' ? 'fat-remove' : 'bell-55'"
+        :color="getColor(log)"
+        :icon="getIcon(log)"
         :title="log.command"
         :date-time="getComment(log)"
+        :description="log.duration ? `Duration: ${log.duration}s` : ''"
         :response="log.response"
         @item-clicked="showModal"
       />
@@ -81,9 +82,22 @@ export default {
         this.modalVisible = true;
       }
     },
+    getColor(log) {
+      if (log.result === 'success' || log.result === 'completed') return 'success';
+      if (log.result === 'failed') return 'danger';
+      if (log.result === 'running') return 'success';
+      return 'warning';
+    },
+    getIcon(log) {
+      if (log.result === 'success' || log.result === 'completed') return 'check-bold';
+      if (log.result === 'failed') return 'fat-remove';
+      if (log.result === 'running') return 'button-play';
+      if (log.result === 'stopped') return 'bold-down';
+      return 'notification-70';
+    },
     getComment(log) {
-      const prefix = log.result === 'success' ? 'Completed' : log.result === 'failed' ? 'Failed' : 'Initiated'
-      return `${prefix} at ${log.timestamp}`;
+      const prefix = log.result === 'success' ? 'Completed' : log.result === 'failed' ? 'Failed' : log.result === 'running' ? 'Running' : 'Initiated';
+      return `${log.result === 'stopped' ? 'Ended' : log.result === 'completed' ? 'Completed' : prefix} at ${log.timestamp}`;
     }
   }
 };

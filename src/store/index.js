@@ -68,7 +68,11 @@ export default createStore({
       state.projects = state.projects.filter(p => p.name !== project.name);
     },
     addLog(state, log) {
-      state.logs.push(log);
+      state.logs.push({
+        ...log,
+        duration: log.endTime ? (new Date(log.endTime) - new Date(log.timestamp)) / 1000 : null,
+        status: log.result,
+      });
     },
     updateProjectFtp(state, { project, ftpConfig }) {
       const proj = state.projects.find(p => p.name === project.name);

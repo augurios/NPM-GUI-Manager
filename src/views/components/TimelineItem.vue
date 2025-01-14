@@ -20,6 +20,9 @@
       <p v-else-if="description" class="mt-3 mb-2 text-sm">
         {{ description }}
       </p>
+      <p v-if="description" class="mt-3 mb-2 text-sm">
+        {{ description }}
+      </p>
       <span
         v-for="(badge, index) of badges"
         :key="index"
