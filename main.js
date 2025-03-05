@@ -4,6 +4,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { Client } = require('ssh2');
 const ftp = require('basic-ftp');
+const isDev = process.env.NODE_ENV === "development";
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -16,7 +17,11 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL('http://localhost:8080'); // Assuming your Vue app runs on this port
+  if (isDev) {
+    mainWindow.loadURL("http://localhost:8080"); // Development mode
+  } else {
+    mainWindow.loadURL(`file://${path.join(__dirname, "dist", "index.html")}`);
+  }
 }
 
 app.on('ready', createWindow);
