@@ -5,8 +5,11 @@ const { exec } = require('child_process');
 const { Client } = require('ssh2');
 const ftp = require('basic-ftp');
 const isDev = process.env.NODE_ENV === "development";
+const { checkAndInstallNvmMAC, checkAndInstallNvmWIN, getVersionsMAC, getVersionsWIN, } = require('./utils'); // Import utility functions
+const plat = process.platform;
 
 function createWindow() {
+  console.log("Running on " + plat);
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 920,
@@ -27,7 +30,7 @@ function createWindow() {
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (plat !== 'darwin') {
     app.quit();
   }
 });
@@ -39,19 +42,26 @@ app.on('activate', () => {
 });
 
 ipcMain.handle('show-open-dialog', async (event, options) => {
-  return dialog.showOpenDialog(options);
+   return dialog.showOpenDialog(options);
 });
 
 ipcMain.handle('run-npm-command', async (event, command) => {
-  return new Promise((resolve, reject) => {
-    exec(`npm ${command}`, (error, stdout, stderr) => {
-      if (error) {
-        reject(stderr);
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
+    try {
+      return new Promise((resolve, reject) => {
+        exec(`npm ${command}`, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`NPM Command Error: ${stderr}`);
+            reject(stderr);
+          } else {
+            console.log(`NPM Command Output: ${stdout}`);
+            resolve(stdout);
+          }
+        });
+      });
+    } catch (err) {
+      console.error(`Unexpected Error: ${err}`);
+      throw err;
+    }
 });
 
 ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName }) => {
@@ -179,50 +189,21 @@ ipcMain.handle('read-file', async (event, filePath) => {
 });
 
 ipcMain.handle('get-versions', async () => {
-  return new Promise((resolve, reject) => {
-    const nvmPath = path.join(process.env.HOME, '.nvm/nvm.sh');
-    const command = `. ${nvmPath} && nvm use default && node -v && npm -v`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(stderr);
-      } else {
-        const [nodeComment, nodeVersion, npmVersion] = stdout.split('\n').filter(Boolean);
-        resolve({ nodeVersion, npmVersion, nodeComment });
-      }
-    });
-  });
+  if (plat === 'win32') {
+      return await getVersionsWIN();
+  } else if (plat === 'darwin') {
+      return await getVersionsMAC();
+  } 
+  
 });
 
-ipcMain.handle('check-nvm-node', async () => {
-  return new Promise((resolve, reject) => {
-    exec('command -v nvm', (error, stdout, stderr) => {
-      if (error) {
-        // nvm is not installed, install it
-        const installNvmCommand = `
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash && \
-          export NVM_DIR="$HOME/.nvm" && \
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
-          nvm install node
-        `;
-        exec(installNvmCommand, (installError, installStdout, installStderr) => {
-          if (installError) {
-            reject(installStderr);
-          } else {
-            resolve('nvm and node installed successfully');
-          }
-        });
-      } else {
-        // nvm is installed, check node
-        exec('nvm use default && node -v', (nodeError, nodeStdout, nodeStderr) => {
-          if (nodeError) {
-            reject(nodeStderr);
-          } else {
-            resolve(`nvm and node are already installed: ${nodeStdout}`);
-          }
-        });
-      }
-    });
-  });
+ipcMain.handle('check-nvm-node', async () => {  
+  if (plat === 'win32') {
+      return await checkAndInstallNvmWIN();
+  } else if (plat === 'darwin') {
+      return await checkAndInstallNvmMAC();
+  } 
+  
 });
 
 ipcMain.handle('get-npm-scripts', async (event, projectPath) => {
