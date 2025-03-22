@@ -4,7 +4,7 @@
 
 ## Overview
 
-This project is the VueJS version of Soft UI Dashboard PRO by Creative Tim. It provides a graphical user interface for managing NPM packages.
+This project provides a graphical user interface for managing NPM packages.
 
 ## Project Structure
 
