@@ -46,7 +46,7 @@
     "build": "cross-env CI=false cross-env PUBLIC_URL=/ vue-cli-service build",
     "lint": "vue-cli-service lint",
     "start": "electron .",
-    "electron:serve": "NODE_ENV=development concurrently \"vue-cli-service serve --port 8080\" \"wait-on http://localhost:8080 && electron .\"",
+    "electron:serve": "cross-env NODE_ENV=development concurrently \"vue-cli-service serve --port 8080\" \"wait-on http://localhost:8080 && electron .\"",
     "electron:build": "vue-cli-service build && electron-builder"
   },
   "dependencies": {
