@@ -14,7 +14,7 @@
               href="https://www.creative-tim.com"
               class="font-weight-bold"
               target="_blank"
-              >Creative Tim</a
+              >los gordos</a
             >
             for a better web.
           </div>
