@@ -55,21 +55,23 @@ export default {
     ...mapMutations(["addProjectToStore", "removeProjectFromStore", "addLog", "updateProjectFtp"]),
     async addProject() {
       const folderPath = await this.browseFolder();
-      this.showModal = true; 
+      if (folderPath) {
+      this.showModal = true;
+  }
       const name = await new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (!this.showModal) {
-            clearInterval(interval);
-            resolve(this.projectName);
-          }
-        }, 100);
-      });
-      const favicon = await this.findFavicon(folderPath);
-      console.log(name, folderPath, favicon);
-      if (name && folderPath) {
-        this.addProjectToStore({ name, path: folderPath, favicon });
+      const interval = setInterval(() => {
+      if (!this.showModal) {
+        clearInterval(interval);
+        resolve(this.projectName);
       }
-    },
+    }, 100);
+  });
+  const favicon = await this.findFavicon(folderPath);
+  console.log(name, folderPath, favicon);
+  if (name && folderPath) {
+    this.addProjectToStore({ name, path: folderPath, favicon });
+  }
+},
     browseFolder() {
       return new Promise((resolve) => {
         ipcRenderer.invoke('show-open-dialog', {
