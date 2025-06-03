@@ -51,6 +51,13 @@
           PAGES
         </h6>
       </li>
+      <li class="nav-item">
+        <sidenav-collapse navText="Settings" :to="{ name: 'Settings' }">
+          <template #icon>
+            <settings />
+          </template>
+        </sidenav-collapse>
+      </li>
       <!-- <li class="nav-item">
         <sidenav-collapse navText="Profile" :to="{ name: 'Profile' }">
           <template #icon>
@@ -74,8 +81,8 @@
       </li> -->
     </ul>
   </div>
-  
 </template>
+
 <script>
 import SidenavCollapse from "./SidenavCollapse.vue";
 import Shop from "../../components/Icon/Shop.vue";
@@ -85,7 +92,7 @@ import Shop from "../../components/Icon/Shop.vue";
 // import CustomerSupport from "../../components/Icon/CustomerSupport.vue";
 // import Document from "../../components/Icon/Document.vue";
 // import Spaceship from "../../components/Icon/Spaceship.vue";
-// import Settings from "../../components/Icon/Settings.vue";
+import Settings from "../../components/Icon/Settings.vue"; // Uncomment Settings icon
 
 export default {
   name: "SidenavList",
@@ -108,7 +115,7 @@ export default {
     // CustomerSupport,
     // Document,
     // Spaceship,
-    // Settings,
+    Settings, // Add Settings to components
   },
   methods: {
     getRoute() {

@@ -7,6 +7,7 @@ import Profile from "@/views/Profile.vue";
 import Rtl from "@/views/Rtl.vue";
 import SignIn from "@/views/SignIn.vue";
 import SignUp from "@/views/SignUp.vue";
+import Settings from "@/views/Settings.vue"; // Import the Settings view
 
 const routes = [
   {
@@ -53,6 +54,11 @@ const routes = [
     path: "/sign-up",
     name: "Sign Up",
     component: SignUp,
+  },
+  {
+    path: "/settings", // Add the new Settings route
+    name: "Settings",
+    component: Settings,
   },
 ];
 
