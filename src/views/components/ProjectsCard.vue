@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <ProjectsCardHeader @addProject="addProject" />
-    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" @toggleScriptsMenu="toggleScriptsMenu" @runScript="runScript" @stopScript="stopScript" />
+    <ProjectsCardBody :projects="projects" @runNpmBuild="runNpmBuild" @runNpmInstall="runNpmInstall" @uploadBuild="uploadBuild" @confirmDelete="confirmDelete" @showFtpModalAction="showFtpModalAction" @toggleOptionsMenu="toggleOptionsMenu" @editFtpDetails="editFtpDetails" @toggleScriptsMenu="toggleScriptsMenu" @runScript="runScript" @stopScript="stopScript" @version-changed="handleVersionChanged" @version-error="handleVersionError" @open-node-manager="openNodeManager" />
     <ProjectModal v-if="showModal" @close="closeModal" @save="saveProjectName" @updatePrName="updatePrName" />
     <DeleteModal v-if="showDeleteModal" :project="projectToDelete" @close="closeDeleteModal" @delete="deleteProject" />
     <FtpModal v-if="showFtpModal" @close="closeFtpModal" @save="saveFtpDetails" @updateFtpHost="updateFtpHost" @updateFtpPort="updateFtpPort" @updateFtpUser="updateFtpUser" @updateFtpPassword="updateFtpPassword" @updateFtpPath="updateFtpPath" @updateFtpProtocol="updateFtpProtocol" :ftpDetails="ftpDetails" />
@@ -53,6 +53,33 @@ export default {
   },
   methods: {
     ...mapMutations(["addProjectToStore", "removeProjectFromStore", "addLog", "updateProjectFtp"]),
+    // ...existing methods...
+    
+    handleVersionChanged(data) {
+      // Show success message or handle version change
+      console.log('Node version changed:', data);
+      this.addLog({ 
+        timestamp: new Date().toISOString(), 
+        command: `${data.project.name} node version`, 
+        result: 'success', 
+        response: data.message 
+      });
+    },
+    
+    handleVersionError(data) {
+      // Show error message
+      console.error('Node version error:', data);
+      this.addLog({ 
+        timestamp: new Date().toISOString(), 
+        command: `${data.project.name} node version`, 
+        result: 'failed', 
+        response: data.error 
+      });
+    },
+    
+    openNodeManager() {
+      this.$router.push('/node-versions');
+    },
     async addProject() {
       const folderPath = await this.browseFolder();
       this.showModal = true; 
@@ -281,8 +308,31 @@ export default {
       project.isRunning = true;
       const timestamp = new Date().toISOString();
       this.addLog({ timestamp, command: `${project.name} ${scriptName}`, result: 'running', response: `npm --prefix ${project.path} run ${scriptName}` });
+      
       try {
-        const pid = await ipcRenderer.invoke('run-npm-script', { projectPath: project.path, scriptName });
+        // Auto-switch to project Node version if .nvmrc exists
+        const autoSwitchResult = await ipcRenderer.invoke('nvm-auto-switch', project.path);
+        if (autoSwitchResult.needsInstall) {
+          this.addLog({ 
+            timestamp: new Date().toISOString(), 
+            command: `${project.name} node version`, 
+            result: 'warning', 
+            response: autoSwitchResult.message 
+          });
+        } else if (autoSwitchResult.switched) {
+          this.addLog({ 
+            timestamp: new Date().toISOString(), 
+            command: `${project.name} node version`, 
+            result: 'success', 
+            response: autoSwitchResult.message 
+          });
+        }
+        
+        const pid = await ipcRenderer.invoke('run-npm-script', { 
+          projectPath: project.path, 
+          scriptName,
+          useProjectNodeVersion: true 
+        });
         this.runningProcesses[project.name] = pid;
         console.log(`pid: ${pid}`);
 

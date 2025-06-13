@@ -11,6 +11,13 @@
           </template>
         </sidenav-collapse>
       </li>
+      <li class="nav-item">
+        <sidenav-collapse navText="Node Versions" :to="{ name: 'Node Versions' }">
+          <template #icon>
+            <settings />
+          </template>
+        </sidenav-collapse>
+      </li>
       <!-- <li class="nav-item">
         <sidenav-collapse navText="Tables" :to="{ name: 'Tables' }">
           <template #icon>
@@ -79,6 +86,7 @@
 <script>
 import SidenavCollapse from "./SidenavCollapse.vue";
 import Shop from "../../components/Icon/Shop.vue";
+import Settings from "../../components/Icon/Settings.vue";
 // import Office from "../../components/Icon/Office.vue";
 // import CreditCard from "../../components/Icon/CreditCard.vue";
 // import Box3d from "../../components/Icon/Box3d.vue";
@@ -102,6 +110,7 @@ export default {
   components: {
     SidenavCollapse,
     Shop,
+    Settings,
     // Office,
     // CreditCard,
     // Box3d,

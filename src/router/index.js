@@ -7,6 +7,7 @@ import Profile from "@/views/Profile.vue";
 import Rtl from "@/views/Rtl.vue";
 import SignIn from "@/views/SignIn.vue";
 import SignUp from "@/views/SignUp.vue";
+import NodeVersions from "@/views/NodeVersions.vue";
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: "/billing",
     name: "Billing",
     component: Billing,
+  },
+  {
+    path: "/node-versions",
+    name: "Node Versions",
+    component: NodeVersions,
   },
   {
     path: "/virtual-reality",

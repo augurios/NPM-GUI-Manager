@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 const { Client } = require('ssh2');
 const ftp = require('basic-ftp');
 const isDev = process.env.NODE_ENV === "development";
-const { checkAndInstallNvmMAC, checkAndInstallNvmWIN, getVersionsMAC, getVersionsWIN, } = require('./utils'); // Import utility functions
+const { checkAndInstallNvmMAC, checkAndInstallNvmWIN, getVersionsMAC, getVersionsWIN, getAvailableNodeVersions, getInstalledNodeVersions, installNodeVersion, switchNodeVersion, setDefaultNodeVersion, uninstallNodeVersion, getCurrentActiveVersion, checkNvmrcFile, createNvmrcFile } = require('./utils'); // Import utility functions
 const plat = process.platform;
 
 function createWindow() {
@@ -64,24 +64,48 @@ ipcMain.handle('run-npm-command', async (event, command) => {
     }
 });
 
-ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName }) => {
-  const command = `npm --prefix ${projectPath} run ${scriptName}`;
-  const childProcess = exec(command);
+ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName, useProjectNodeVersion = true }) => {
+  try {
+    let command = `npm --prefix ${projectPath} run ${scriptName}`;
+    let execOptions = {};
+    
+    // Check for project-specific Node version
+    if (useProjectNodeVersion) {
+      const nvmrcInfo = await checkNvmrcFile(projectPath);
+      if (nvmrcInfo.exists) {
+        const requiredVersion = nvmrcInfo.version;
+        
+        // Prepare environment with correct Node version
+        if (plat === 'win32') {
+          command = `set NVM_HOME=%USERPROFILE%\\AppData\\Roaming\\nvm && %NVM_HOME%\\nvm.exe use ${requiredVersion} && ${command}`;
+          execOptions.shell = 'cmd.exe';
+        } else {
+          command = `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use ${requiredVersion} && ${command}`;
+          execOptions.shell = '/bin/zsh';
+        }
+      }
+    }
+    
+    const childProcess = exec(command, execOptions);
 
-  childProcess.stdout.on('data', (data) => {
-    // console.log(`childProcess stdout: ${data}`);
-    event.sender.send('npm-script-output', { projectPath, scriptName, data });
-  });
+    childProcess.stdout.on('data', (data) => {
+      // console.log(`childProcess stdout: ${data}`);
+      event.sender.send('npm-script-output', { projectPath, scriptName, data });
+    });
 
-  childProcess.stderr.on('data', (data) => {
-    event.sender.send('npm-script-error', { projectPath, scriptName, data });
-  });
+    childProcess.stderr.on('data', (data) => {
+      event.sender.send('npm-script-error', { projectPath, scriptName, data });
+    });
 
-  childProcess.on('close', (code) => {
-    event.sender.send('npm-script-close', { projectPath, scriptName, code });
-  });
+    childProcess.on('close', (code) => {
+      event.sender.send('npm-script-close', { projectPath, scriptName, code });
+    });
 
-  return childProcess.pid;
+    return childProcess.pid;
+  } catch (error) {
+    console.error('Error running npm script:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('stop-npm-script', async (event, pid) => {
@@ -219,4 +243,154 @@ ipcMain.handle('get-npm-scripts', async (event, projectPath) => {
 
 ipcMain.handle('open-url', async (event, url) => {
   await shell.openExternal(url);
+});
+
+// Enhanced Node Version Management IPC Handlers
+
+ipcMain.handle('nvm-list-available', async () => {
+  try {
+    return await getAvailableNodeVersions();
+  } catch (error) {
+    console.error('Failed to get available Node versions:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-list-installed', async () => {
+  try {
+    return await getInstalledNodeVersions();
+  } catch (error) {
+    console.error('Failed to get installed Node versions:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-install-version', async (event, version) => {
+  try {
+    const result = await installNodeVersion(version);
+    return result;
+  } catch (error) {
+    console.error(`Failed to install Node ${version}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-switch-version', async (event, version) => {
+  try {
+    return await switchNodeVersion(version);
+  } catch (error) {
+    console.error(`Failed to switch to Node ${version}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-set-default', async (event, version) => {
+  try {
+    return await setDefaultNodeVersion(version);
+  } catch (error) {
+    console.error(`Failed to set Node ${version} as default:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-uninstall-version', async (event, version) => {
+  try {
+    return await uninstallNodeVersion(version);
+  } catch (error) {
+    console.error(`Failed to uninstall Node ${version}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('nvm-get-current', async () => {
+  try {
+    return await getCurrentActiveVersion();
+  } catch (error) {
+    console.error('Failed to get current Node version:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('project-get-nvmrc', async (event, projectPath) => {
+  try {
+    return await checkNvmrcFile(projectPath);
+  } catch (error) {
+    console.error('Failed to check .nvmrc file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('project-set-nvmrc', async (event, { projectPath, version }) => {
+  try {
+    return await createNvmrcFile(projectPath, version);
+  } catch (error) {
+    console.error('Failed to create .nvmrc file:', error);
+    throw error;
+  }
+});
+
+// Add handler to remove .nvmrc file
+ipcMain.handle('project-remove-nvmrc', async (event, projectPath) => {
+  try {
+    const nvmrcPath = path.join(projectPath, '.nvmrc');
+    await fs.promises.unlink(nvmrcPath);
+    return { success: true, message: 'Successfully removed .nvmrc file' };
+  } catch (error) {
+    console.error('Failed to remove .nvmrc file:', error);
+    if (error.code === 'ENOENT') {
+      return { success: false, message: '.nvmrc file not found' };
+    }
+    throw new Error(`Failed to remove .nvmrc file: ${error.message}`);
+  }
+});
+
+ipcMain.handle('nvm-auto-switch', async (event, projectPath) => {
+  try {
+    const nvmrcInfo = await checkNvmrcFile(projectPath);
+    
+    if (nvmrcInfo.exists) {
+      const currentVersion = await getCurrentActiveVersion();
+      const requiredVersion = nvmrcInfo.version;
+      
+      if (currentVersion !== `v${requiredVersion}` && currentVersion !== requiredVersion) {
+        // Check if required version is installed
+        const installedVersions = await getInstalledNodeVersions();
+        const isInstalled = installedVersions.some(v => 
+          v.version === requiredVersion || `v${v.version}` === requiredVersion
+        );
+        
+        if (isInstalled) {
+          await switchNodeVersion(requiredVersion);
+          return {
+            switched: true,
+            version: requiredVersion,
+            message: `Switched to Node ${requiredVersion} as required by .nvmrc`
+          };
+        } else {
+          return {
+            switched: false,
+            version: requiredVersion,
+            message: `Node ${requiredVersion} is required but not installed`,
+            needsInstall: true
+          };
+        }
+      } else {
+        return {
+          switched: false,
+          version: requiredVersion,
+          message: `Already using required Node ${requiredVersion}`,
+          alreadyActive: true
+        };
+      }
+    } else {
+      return {
+        switched: false,
+        message: 'No .nvmrc file found in project',
+        noNvmrc: true
+      };
+    }
+  } catch (error) {
+    console.error('Failed to auto-switch Node version:', error);
+    throw error;
+  }
 });

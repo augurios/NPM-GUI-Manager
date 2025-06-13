@@ -6,7 +6,8 @@
           <tr>
             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Project Name</th>
             <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Path</th>
-            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">...</th>
+            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Node Version</th>
+            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -25,6 +26,14 @@
             </td>
             <td class="align-middle text-center text-sm">
               <span class="text-xs font-weight-bold pj-path">{{ project.path }}</span>
+            </td>
+            <td class="align-middle text-center">
+              <version-selector 
+                :project="project" 
+                @version-changed="handleVersionChanged"
+                @version-error="handleVersionError"
+                @open-node-manager="$emit('open-node-manager')"
+              />
             </td>
             <td class="align-middle text-right">
               <button v-if="project.ftpConfig" class="btn btn-info ms-2" @click="$emit('upload-build', project)" :disabled="project.isBuilding || project.isUploading || project.isRunning">
@@ -52,6 +61,7 @@
 <script>
 import OptionsDropdown from "@/components/OptionsDropdown.vue";
 import ScriptsDropdown from "@/components/ScriptsDropdown.vue";
+import VersionSelector from "@/components/VersionSelector.vue";
 
 export default {
   name: "ProjectsCardBody",
@@ -60,7 +70,8 @@ export default {
   },
   components: {
     OptionsDropdown,
-    ScriptsDropdown
+    ScriptsDropdown,
+    VersionSelector
   },
   methods: {
     toggleScriptsMenu(project) {
@@ -68,6 +79,12 @@ export default {
     },
     stopScript(project) {
       this.$emit('stop-script', project);
+    },
+    handleVersionChanged(data) {
+      this.$emit('version-changed', data);
+    },
+    handleVersionError(data) {
+      this.$emit('version-error', data);
     }
   }
 };
