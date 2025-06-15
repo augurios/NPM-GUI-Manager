@@ -298,7 +298,6 @@ async function createNvmrcFile(projectPath, version) {
 function parseVersionOutput(output, type) {
     const lines = output.split('\n').filter(line => line.trim());
     const versions = {};
-    console.log(output, type);
     if (type === 'available') {
         // Parse available versions (different format for Windows/Mac)
         lines.forEach(line => {
