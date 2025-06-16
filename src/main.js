@@ -22,7 +22,7 @@ import "./assets/css/nucleo-svg.css";
 import SoftUIDashboard from "./soft-ui-dashboard";
 import { devtools } from '@vue/devtools'
 
-if (process.env.NODE_ENV === 'development') devtools.connect ();
+if (process.env.NODE_ENV === 'development') devtools.connect();
   
 
 
