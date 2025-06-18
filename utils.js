@@ -2,9 +2,91 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// Enhanced exec function that ensures proper shell environment
+function execWithEnv(command, options = {}, callback) {
+  // If callback is the second parameter, adjust arguments
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+
+  // Create enhanced environment
+  const enhancedEnv = {
+    ...process.env,
+    // Ensure NVM environment variables are available
+    NVM_DIR: process.env.NVM_DIR || `${process.env.HOME}/.nvm`,
+    PATH: process.env.PATH,
+    SHELL: process.env.SHELL || '/bin/zsh'
+  };
+
+  // Enhanced options with proper environment
+  const enhancedOptions = {
+    ...options,
+    env: enhancedEnv,
+    // For NVM commands, we need to ensure the shell loads NVM functions
+    shell: options.shell || (process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh')
+  };
+
+  // For Unix systems, ensure NVM is properly loaded by wrapping the command
+  if (process.platform !== 'win32' && command.includes('nvm')) {
+    const nvmSetup = `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"`;
+    command = `${nvmSetup} && ${command}`;
+  }
+
+  return exec(command, enhancedOptions, callback);
+}
+
+// Function to update the current Electron process environment with new Node version
+async function updateElectronEnvironment(version) {
+  return new Promise((resolve, reject) => {
+    const command = process.platform === 'win32' 
+      ? `set NVM_HOME=%USERPROFILE%\\AppData\\Roaming\\nvm && %NVM_HOME%\\nvm.exe which ${version}`
+      : `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm which ${version}`;
+    
+    const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
+    
+    exec(command, { shell }, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
+      } else {
+        const nodePath = stdout.trim();
+        const nodeDir = path.dirname(nodePath);
+        const versionPath = path.dirname(nodeDir); // This gives us the version directory
+        
+        // Update the current process environment
+        process.env.NVM_BIN = nodeDir;
+        process.env.NVM_INC = path.join(versionPath, 'include', 'node');
+        
+        // Update PATH to point to the new Node version
+        const currentPath = process.env.PATH;
+        const pathSegments = currentPath.split(path.delimiter);
+        
+        // Remove existing NVM paths from PATH
+        const filteredPaths = pathSegments.filter(segment => 
+          !segment.includes('.nvm/versions/node/') || segment === nodeDir
+        );
+        
+        // Add the new Node version path at the beginning
+        if (!filteredPaths.includes(nodeDir)) {
+          filteredPaths.unshift(nodeDir);
+        }
+        
+        process.env.PATH = filteredPaths.join(path.delimiter);
+        
+        resolve({
+          nodePath,
+          nodeDir,
+          versionPath,
+          updatedPath: process.env.PATH
+        });
+      }
+    });
+  });
+}
+
 async function checkAndInstallNvmMAC() {
   return new Promise((resolve, reject) => {
-    exec('command -v nvm', (error) => {
+    execWithEnv('command -v nvm', (error) => {
       if (error) {
         // Install nvm
         const installCommand = `
@@ -13,7 +95,7 @@ async function checkAndInstallNvmMAC() {
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           nvm install node
         `;
-        exec(installCommand, { shell: '/bin/bash' }, (installError, installStdout, installStderr) => {
+        execWithEnv(installCommand, { shell: '/bin/bash' }, (installError, installStdout, installStderr) => {
           if (installError) {
             reject(installStderr);
           } else {
@@ -29,7 +111,7 @@ async function checkAndInstallNvmMAC() {
 
 async function checkAndInstallNvmWIN() {
     return new Promise((resolve, reject) => {
-      exec('where nvm', (error) => {
+      execWithEnv('where nvm', (error) => {
         if (error) {
           // Download and install nvm for Windows
           const installCommand = `
@@ -41,7 +123,7 @@ async function checkAndInstallNvmWIN() {
             nvm install latest
             nvm use latest
           `;
-          exec(installCommand, { shell: 'cmd.exe' }, (installError, installStdout, installStderr) => {
+          execWithEnv(installCommand, { shell: 'cmd.exe' }, (installError, installStdout, installStderr) => {
             if (installError) {
               reject(installStderr);
             } else {
@@ -67,7 +149,7 @@ async function getVersionsMAC() {
         node -v && npm -v
       `;
   
-      exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
+      execWithEnv(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
         if (error) {
           reject(stderr);
         } else {
@@ -87,7 +169,7 @@ async function getVersionsWIN() {
         node -v && npm -v
       `;
   
-      exec(command, { shell: 'cmd.exe' }, (error, stdout, stderr) => {
+      execWithEnv(command, { shell: 'cmd.exe' }, (error, stdout, stderr) => {
         if (error) {
           reject(stderr);
         } else {
@@ -107,7 +189,7 @@ async function getAvailableNodeVersions() {
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {
@@ -127,7 +209,7 @@ async function getInstalledNodeVersions() {
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {
@@ -147,7 +229,7 @@ async function installNodeVersion(version) {
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        const childProcess = exec(command, { shell });
+        const childProcess = execWithEnv(command, { shell });
         
         let output = '';
         childProcess.stdout.on('data', (data) => {
@@ -174,18 +256,26 @@ async function installNodeVersion(version) {
 
 // Switch to a specific Node version
 async function switchNodeVersion(version) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const command = process.platform === 'win32' 
             ? `set NVM_HOME=%USERPROFILE%\\AppData\\Roaming\\nvm && %NVM_HOME%\\nvm.exe use ${version}`
             : `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use ${version}`;
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, async (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {
-                resolve(`Switched to Node ${version}`);
+                try {
+                    // Update the Electron process environment to use the new Node version
+                    await updateElectronEnvironment(version);
+                    resolve(`Switched to Node ${version}`);
+                } catch (envError) {
+                    // Command succeeded but environment update failed
+                    console.warn('Node version switched but environment update failed:', envError);
+                    resolve(`Switched to Node ${version} (restart recommended)`);
+                }
             }
         });
     });
@@ -193,18 +283,26 @@ async function switchNodeVersion(version) {
 
 // Set default Node version
 async function setDefaultNodeVersion(version) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const command = process.platform === 'win32' 
             ? `set NVM_HOME=%USERPROFILE%\\AppData\\Roaming\\nvm && %NVM_HOME%\\nvm.exe use ${version} && %NVM_HOME%\\nvm.exe alias default ${version}`
-            : `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm alias default ${version}`;
+            : `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use ${version} && nvm alias default ${version}`;
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, async (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {
-                resolve(`Set Node ${version} as default`);
+                try {
+                    // Update the Electron process environment to use the new Node version
+                    await updateElectronEnvironment(version);
+                    resolve(`Set Node ${version} as default`);
+                } catch (envError) {
+                    // Command succeeded but environment update failed
+                    console.warn('Node version set as default but environment update failed:', envError);
+                    resolve(`Set Node ${version} as default (restart recommended)`);
+                }
             }
         });
     });
@@ -219,7 +317,7 @@ async function uninstallNodeVersion(version) {
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, (error, stdout, stderr) => {
             if (error) {
                 reject(stderr);
             } else {
@@ -238,10 +336,10 @@ async function getCurrentActiveVersion() {
         
         const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh';
         
-        exec(command, { shell }, (error, stdout, stderr) => {
+        execWithEnv(command, { shell }, (error, stdout, stderr) => {
             if (error) {
                 // Fallback to checking node version directly
-                exec('node -v', (nodeError, nodeStdout, nodeStderr) => {
+                execWithEnv('node -v', (nodeError, nodeStdout, nodeStderr) => {
                     if (nodeError) {
                         reject('No Node version active');
                     } else {

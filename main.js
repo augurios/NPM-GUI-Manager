@@ -8,6 +8,40 @@ const isDev = process.env.NODE_ENV === "development";
 const { checkAndInstallNvmMAC, checkAndInstallNvmWIN, getVersionsMAC, getVersionsWIN, getAvailableNodeVersions, getInstalledNodeVersions, installNodeVersion, switchNodeVersion, setDefaultNodeVersion, uninstallNodeVersion, getCurrentActiveVersion, checkNvmrcFile, createNvmrcFile } = require('./utils'); // Import utility functions
 const plat = process.platform;
 
+// Enhanced exec function that ensures proper shell environment
+function execWithEnv(command, options = {}, callback) {
+  // If callback is the second parameter, adjust arguments
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+
+  // Create enhanced environment
+  const enhancedEnv = {
+    ...process.env,
+    // Ensure NVM environment variables are available
+    NVM_DIR: process.env.NVM_DIR || `${process.env.HOME}/.nvm`,
+    PATH: process.env.PATH,
+    SHELL: process.env.SHELL || '/bin/zsh'
+  };
+
+  // Enhanced options with proper environment
+  const enhancedOptions = {
+    ...options,
+    env: enhancedEnv,
+    // For NVM commands, we need to ensure the shell loads NVM functions
+    shell: options.shell || (process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh')
+  };
+
+  // For Unix systems, ensure NVM is properly loaded by wrapping the command
+  if (process.platform !== 'win32' && command.includes('nvm')) {
+    const nvmSetup = `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"`;
+    command = `${nvmSetup} && ${command}`;
+  }
+
+  return exec(command, enhancedOptions, callback);
+}
+
 function createWindow() {
   console.log("Running on " + plat);
   const mainWindow = new BrowserWindow({
@@ -48,7 +82,7 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
 ipcMain.handle('run-npm-command', async (event, command) => {
     try {
       return new Promise((resolve, reject) => {
-        exec(`npm ${command}`, (error, stdout, stderr) => {
+        execWithEnv(`npm ${command}`, (error, stdout, stderr) => {
           if (error) {
             console.error(`NPM Command Error: ${stderr}`);
             reject(stderr);
@@ -86,7 +120,7 @@ ipcMain.handle('run-npm-script', async (event, { projectPath, scriptName, usePro
       }
     }
     
-    const childProcess = exec(command, execOptions);
+    const childProcess = execWithEnv(command, execOptions);
 
     childProcess.stdout.on('data', (data) => {
       // console.log(`childProcess stdout: ${data}`);
