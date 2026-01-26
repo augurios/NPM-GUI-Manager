@@ -55,9 +55,9 @@ function createWindow() {
   });
 
   if (isDev) {
-    mainWindow.loadURL("http://localhost:8080"); // Development mode
+    mainWindow.loadURL("http://localhost:8080/#/dashboard"); // Development mode
   } else {
-    mainWindow.loadURL(`file://${path.join(__dirname, "dist", "index.html")}`);
+    mainWindow.loadURL(`file://${path.join(__dirname, "dist", "index.html")}#/dashboard`);
   }
 }
 
