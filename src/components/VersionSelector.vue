@@ -13,6 +13,23 @@
         {{ displayVersion }}
       </button>
       <ul class="dropdown-menu" :aria-labelledby="`nodeVersion-${project.id || project.name}`">
+        <!-- Package.json version requirement -->
+        <li v-if="packageJsonVersion">
+          <h6 class="dropdown-header">Required Version</h6>
+        </li>
+        <li v-if="packageJsonVersion">
+          <a 
+            class="dropdown-item" 
+            href="#"
+            @click.prevent="handlePackageJsonVersion"
+          >
+            <i class="fas fa-box me-2"></i>
+            {{ packageJsonVersion }} 
+            <span class="badge bg-primary ms-2">package.json</span>
+          </a>
+        </li>
+        <li v-if="packageJsonVersion"><hr class="dropdown-divider"/></li>
+
         <!-- Current project version -->
         <li v-if="projectVersion">
           <h6 class="dropdown-header">Project Version</h6>
@@ -91,6 +108,7 @@ export default {
     return {
       currentVersion: null,
       projectVersion: null,
+      packageJsonVersion: null,
       installedVersions: [],
       loading: false
     };
@@ -98,17 +116,21 @@ export default {
   computed: {
     displayVersion() {
       if (this.loading) return 'Loading...';
+      if (this.packageJsonVersion) return this.packageJsonVersion;
       if (this.projectVersion) return this.projectVersion;
-      if (this.currentVersion) return this.currentVersion.replace('v', '');
-      return 'No version';
+      return 'Not found';
     },
     buttonClass() {
-      if (this.projectVersion) {
-        return this.currentVersion === this.projectVersion || this.currentVersion === `v${this.projectVersion}` 
-          ? 'btn-success' 
-          : 'btn-warning';
+      const requiredVersion = this.packageJsonVersion || this.projectVersion;
+      
+      if (!requiredVersion) {
+        return 'btn-outline-secondary';
       }
-      return this.currentVersion ? 'btn-outline-success' : 'btn-outline-secondary';
+      
+      const versionMatch = this.currentVersion === requiredVersion || 
+                          this.currentVersion === `v${requiredVersion}` ||
+                          this.currentVersion?.replace('v', '') === requiredVersion.replace(/[^0-9.]/g, '');
+      return versionMatch ? 'btn-success' : 'btn-warning';
     }
   },
   async mounted() {
@@ -118,13 +140,20 @@ export default {
     async loadVersionInfo() {
       this.loading = true;
       try {
+        // Check for package.json node version requirement
+        const packageJsonInfo = await ipcRenderer.invoke('get-package-node-version', this.project.path);
+        this.packageJsonVersion = packageJsonInfo.exists ? packageJsonInfo.version : null;
+        console.log(`[${this.project.name}] Package.json version:`, this.packageJsonVersion);
+
         // Check for project .nvmrc
         const nvmrcInfo = await ipcRenderer.invoke('project-get-nvmrc', this.project.path);
         this.projectVersion = nvmrcInfo.exists ? nvmrcInfo.version : null;
+        console.log(`[${this.project.name}] .nvmrc version:`, this.projectVersion);
 
         // Get current active version
         try {
           this.currentVersion = await ipcRenderer.invoke('nvm-get-current');
+          console.log(`[${this.project.name}] Current global version:`, this.currentVersion);
         } catch (error) {
           this.currentVersion = null;
         }
@@ -135,6 +164,8 @@ export default {
         } catch (error) {
           this.installedVersions = [];
         }
+        
+        console.log(`[${this.project.name}] Display version will be:`, this.displayVersion);
       } catch (error) {
         console.error('Error loading version info:', error);
       } finally {
@@ -210,6 +241,13 @@ export default {
             error: error.message
           });
         }
+      }
+    },
+
+    handlePackageJsonVersion() {
+      const cleanVersion = this.packageJsonVersion.replace(/[^0-9.]/g, '');
+      if (cleanVersion) {
+        alert(`This project requires Node ${this.packageJsonVersion}.\n\nTo use a specific version, select it from the installed versions below or manage versions.`);
       }
     },
 

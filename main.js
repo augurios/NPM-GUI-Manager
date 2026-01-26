@@ -275,6 +275,35 @@ ipcMain.handle('get-npm-scripts', async (event, projectPath) => {
   }
 });
 
+ipcMain.handle('get-package-node-version', async (event, projectPath) => {
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    const packageJson = JSON.parse(await fs.promises.readFile(packageJsonPath, 'utf-8'));
+    
+    if (packageJson.engines && packageJson.engines.node) {
+      return {
+        exists: true,
+        version: packageJson.engines.node,
+        source: 'engines.node'
+      };
+    }
+    
+    return {
+      exists: false,
+      version: null,
+      source: null
+    };
+  } catch (error) {
+    console.error('Failed to read package.json:', error);
+    return {
+      exists: false,
+      version: null,
+      source: null,
+      error: error.message
+    };
+  }
+});
+
 ipcMain.handle('open-url', async (event, url) => {
   await shell.openExternal(url);
 });
